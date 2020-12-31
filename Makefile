@@ -1,7 +1,7 @@
 LATEST-GIT-SHA := $(shell git rev-parse HEAD)
 VERSION := $(shell cat VERSION)
 FLAGS := -X main.commit=$(LATEST-GIT-SHA) -X main.version=$(VERSION)
-BIN := packer-builder-veertu-anka
+BIN := packer-plugin-veertu-anka
 SOURCES := $(shell find . -name '*.go')
 
 .PHONY: test packer-test clean clean-images
@@ -13,6 +13,7 @@ build: $(BIN)
 $(BIN):
 	GOOS=darwin GOBIN=$(shell pwd) go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
 	GOOS=darwin PATH="$(shell pwd):${PATH}" go generate builder/anka/config.go
+	GOOS=darwin PATH="$(shell pwd):${PATH}" go generate post-processor/anka/post-processor.go
 	GOOS=darwin go build -ldflags="$(FLAGS)" -o $(BIN)
 
 install: $(BIN)
@@ -27,8 +28,12 @@ build-and-install: $(BIN)
 packer-test: install
 	PACKER_LOG=1 packer build examples/create-from-installer.json
 
+packer-test-push: build
+	PACKER_LOG=1 packer build examples/macos-mojave-registry-push.json
+
 clean:
 	rm -f $(BIN)
+	rm -f mapstructure-to-hcl2
 
 clean-images:
 	anka --machine-readable list | jq -r '.body[].name' | grep anka-packer | xargs -n1 anka delete --yes

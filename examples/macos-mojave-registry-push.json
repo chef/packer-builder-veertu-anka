@@ -1,0 +1,14 @@
+{
+  "builders": [
+    {
+      "installer_app": "/Applications/Install macOS Mojave.app",
+      "type": "veertu-anka-vm"
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "veertu-anka-registry",
+      "tag": "latest"
+    }
+  ]
+}

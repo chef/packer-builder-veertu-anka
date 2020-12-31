@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/hashicorp/packer/packer-plugin-sdk/plugin"
-	"github.com/veertuinc/packer-builder-veertu-anka/builder/anka"
+	builder "github.com/veertuinc/packer-builder-veertu-anka/builder/anka"
+	postprocessor "github.com/veertuinc/packer-builder-veertu-anka/post-processor/anka"
 )
 
 var version = "SNAPSHOT"
@@ -16,10 +19,12 @@ func main() {
 	} else {
 		log.Printf("packer-builder-veertu-anka version: %s+%s", version, commit)
 	}
-	server, err := plugin.Server()
+	pps := plugin.NewSet()
+	pps.RegisterBuilder("vm", new(builder.Builder))
+	pps.RegisterPostProcessor("registry", new(postprocessor.PostProcessor))
+	err := pps.Run()
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
-	server.RegisterBuilder(new(anka.Builder))
-	server.Serve()
 }

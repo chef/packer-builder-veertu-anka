@@ -1,20 +1,27 @@
-# Packer Builder for Anka
+# Packer Plugin for Veertu Anka
 
-This is a [Packer Builder] for building images that work with [Veertu Anka], a macOS virtualization tool.
+This is a [Packer Plugin] for building and publishing images that work with [Veertu Anka], a macOS virtualization tool.
 
-Note that this builder does not manage images. Once it creates an image, it is up to you to use it or delete it.
+Note that this plugin does not manage images. Once it creates an image, it is up to you to use it or delete it.
+
+### Important Updates for v2.0.0
+
+* Plugin will only work with Packer v1.7 or later.
+* Plugin has been renamed from `packer-builder-veertu-anka` to `packer-plugin-veertu-anka`.
+* Builder has been renamed from `veertu-anka` to `veertu-anka-vm` to adhere to Packer 1.7 Plugin SDK requirements.
 
 ### Compatibility
 
-Packer Version | Builder for Anka Version
+Packer Version | Veertu Anka Plugin Version
 --- | ---
 Up to 1.4.5 | 1.1.0
 1.5.x and above | 1.2.0
+1.7.x and above | 2.0.0
 
 ## Installing from Binary
 
-1. Install Packer
-2. Install Veertu Anka
+1. [Install Packer v1.7 or newer](https://www.packer.io/downloads)
+2. [Install Veertu Anka v2.3.1 or newer](https://veertu.com/download-anka-build/)
 3. Download the [latest release](https://github.com/veertuinc/packer-builder-veertu-anka/releases) for your host environment
 4. Unzip the plugin binaries to a location where Packer will detect them at run-time, such as any of the following:
     * The directory where the packer binary is.
@@ -33,11 +40,17 @@ The most basic json file you can build from is:
       "installer_app": "/Applications/Install macOS Big Sur.app",
       "type": "veertu-anka"
     }
+  ],
+  "post-processors": [
+    {
+      "type": "veertu-anka-registry",
+      "tag": "latest"
+    }
   ]
 }
 ```
 
-This will create a base VM template using the `.app` you specified in `installer_app` with a name like `anka-packer-base-{macOSVersion}`. Once the base VM template is created, it will create a clone from it (that shares the underlying layers from the base VM template, minimizing the amount of disk space used).
+This will create a base VM template using the `.app` you specified in `installer_app` with a name like `anka-packer-base-{macOSVersion}`. Once the base VM template is created, it will create a clone from it (that shares the underlying layers from the base VM template, minimizing the amount of disk space used). Once the VM has been created, it will push that VM to you default registry with the `latest` tag.
 
 > When using `installer_app`, you can modify the base VM default resource values with `disk_size`, `ram_size`, and `cpu_count`. Otherwise, defaults will be used (see "Configuration" section).
 
@@ -55,13 +68,15 @@ You can also skip the creation of the base VM template and use an existing VM te
       ]
     }
   ],
-  "builders": [{
-    "type": "veertu-anka",
-    "cpu_count": 8,
-    "ram_size": "10G",
-    "disk_size": "150G",
-    "source_vm_name": "10.15.6"
-  }]
+  "builders": [
+    {
+      "type": "veertu-anka-vm",
+      "cpu_count": 8,
+      "ram_size": "10G",
+      "disk_size": "150G",
+      "source_vm_name": "10.15.6"
+    }
+  ]
 }
 ```
 
@@ -73,53 +88,45 @@ This will clone `10.15.6` to a new VM and, if there are differences from the bas
 
 > Check out the [examples directory](./examples) to see how port-forwarding and other options are used
 
-## Configuration
+## `veertu-anka-vm` Builder Configuration
 
-* `type` (required)
+### Required
 
-Must be `veertu-anka`.
+#### `type`
 
-* `installer_app` (optional)
+String. Must be `veertu-anka-vm`.
 
-The path to a macOS installer. This must be provided if `source_vm_name` isn't provided. This process takes about 20 minutes. The resulting VM template name will be `anka-packer-base-{macOSVersion}`.
+### Optional
 
-* `disk_size` (optional)
+#### `boot_delay`
 
-The size in "[0-9]+G" format, defaults to `25G`.
+String. The time to wait before running packer provisioner commands, defaults to `10s`.
+
+#### `cpu_count`
+
+String. The number of CPU cores, defaults to `2`.
+
+#### `disk_size`
+
+String. The size in "[0-9]+G" format, defaults to `25G`.
 
 > We will automatically resize the internal disk for you by executing: `diskutil apfs resizeContainer disk1 0`
 
-* `ram_size` (optional)
+#### `hw_uuid`
 
-The size in "[0-9]+G" format, defaults to `2G`.
+String. The Hardware UUID you wish to set (usually generated with `uuidgen`).
 
-* `cpu_count` (optional)
+#### `installer_app`
 
-The number of CPU cores, defaults to `2`.
+String. The path to a macOS installer. This must be provided if `source_vm_name` isn't provided. This process takes about 20 minutes. The resulting VM template name will be `anka-packer-base-{macOSVersion}`.
 
-* `source_vm_name` (optional)
-
-The VM to clone for provisioning, either stopped or suspended.
-
-* `vm_name` (optional)
-
-The name for the VM that is created. One is generated if not provided (`anka-packer-{10RandomCharacters}`).
-
-* `boot_delay` (optional)
-
-The time to wait before running packer provisioner commands, defaults to `10s`.
-
-* `hw_uuid` (optional)
-
-The Hardware UUID you wish to set (usually generated with `uuidgen`).
-
-* `port_forwarding_rules` (optional)
+#### `port_forwarding_rules`
 
 > If port forwarding rules are already set and you want to not have them fail the packer build, use `packer build --force`
 
 ```json
   "builders": [{
-    "type": "veertu-anka",
+    "type": "veertu-anka-vm",
     "cpu_count": 8,
     "ram_size": "10G",
     "source_vm_name": "anka-packer-base-10.15.7",
@@ -135,6 +142,65 @@ The Hardware UUID you wish to set (usually generated with `uuidgen`).
     ]
   }]
 ```
+
+#### `ram_size`
+
+String. The size in "[0-9]+G" format, defaults to `2G`.
+
+#### `source_vm_name`
+
+String. The VM to clone for provisioning, either stopped or suspended.
+
+#### `vm_name`
+
+String. The name for the VM that is created. One is generated if not provided (`anka-packer-{10RandomCharacters}`).
+
+## `veertu-anka-registry` Post Processor Configuration
+
+### Required
+
+#### `type`
+
+String. Must be `veertu-anka-registry`.
+
+#### `tag`
+
+String. The name of the tag to push.
+
+### Optional
+
+#### `cacert`
+
+String. Path to a CA Root certificate.
+
+#### `cert`
+
+String. Path to your node certificate (if certificate authentication is enabled).
+
+#### `description`
+
+String. The description of the tag.
+
+#### `insecure`
+
+Boolean. Skip TLS verification.
+
+#### `key`
+
+String. Path to your node certificate key if the client/node certificate doesn't contain one.
+
+#### `registry-path`
+
+String. The registry URL (instead of 'default').
+
+#### `remote`
+
+String. The registry name (instead of 'default').
+
+#### `remote-vm`
+
+String. The name of a registry template you want to push the local template (and tag) onto.
+
 
 ## Development
 
@@ -156,5 +222,7 @@ make packer-test-existing SOURCE_VM_NAME=11.1.0
 make build-and-install && PACKER_LOG=1 packer build examples/macos-catalina-existing.json
 ```
 
-[Packer Builder]: https://www.packer.io/docs/extending/custom-builders.html
+[Packer Plugin]: https://www.packer.io/docs/extending/plugins
+[Packer Builder]: https://www.packer.io/docs/extending/custom-builders
+[Packer Post Provisioner]: https://www.packer.io/docs/extending/custom-post-processors
 [Veertu Anka]: https://veertu.com/
