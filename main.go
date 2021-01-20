@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/hashicorp/packer/packer-plugin-sdk/plugin"
-	builder "github.com/veertuinc/packer-builder-veertu-anka/builder/anka"
-	postprocessor "github.com/veertuinc/packer-builder-veertu-anka/post-processor/anka"
+	"github.com/veertuinc/packer-builder-veertu-anka/builder/ankavm"
+	"github.com/veertuinc/packer-builder-veertu-anka/post-processor/ankaregistry"
 )
 
 var version = "SNAPSHOT"
@@ -20,8 +20,8 @@ func main() {
 		log.Printf("packer-builder-veertu-anka version: %s+%s", version, commit)
 	}
 	pps := plugin.NewSet()
-	pps.RegisterBuilder("vm", new(builder.Builder))
-	pps.RegisterPostProcessor("registry", new(postprocessor.PostProcessor))
+	pps.RegisterBuilder("vm", new(ankavm.Builder))
+	pps.RegisterPostProcessor("registry", new(ankaregistry.PostProcessor))
 	err := pps.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())

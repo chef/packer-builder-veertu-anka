@@ -1,6 +1,6 @@
 //go:generate mapstructure-to-hcl2 -type Config
 
-package anka
+package ankaregistry
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/packer/packer-plugin-sdk/packer"
 	"github.com/hashicorp/packer/packer-plugin-sdk/template/config"
 	"github.com/hashicorp/packer/packer-plugin-sdk/template/interpolate"
-	"github.com/veertuinc/packer-builder-veertu-anka/builder/anka"
+	"github.com/veertuinc/packer-builder-veertu-anka/builder/ankavm"
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
 )
 
@@ -60,7 +60,7 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 }
 
 func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact packer.Artifact) (packer.Artifact, bool, bool, error) {
-	if artifact.BuilderId() != anka.BuilderId {
+	if artifact.BuilderId() != ankavm.BuilderId {
 		err := fmt.Errorf(
 			"Unknown artifact type: %s\nCan only import from anka artifacts.",
 			artifact.BuilderId())

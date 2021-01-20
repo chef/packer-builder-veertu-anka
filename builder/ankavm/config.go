@@ -1,5 +1,5 @@
-//go:generate mapstructure-to-hcl2 -type Config
-package anka
+//go:generate mapstructure-to-hcl2 -type Config,PortForwardingRule
+package ankavm
 
 import (
 	"errors"
@@ -16,29 +16,31 @@ import (
 
 const DEFAULT_BOOT_DELAY = "10s"
 
+type PortForwardingRule struct {
+	PortForwardingGuestPort int    `mapstructure:"port_forwarding_guest_port"`
+	PortForwardingHostPort  int    `mapstructure:"port_forwarding_host_port"`
+	PortForwardingRuleName  string `mapstructure:"port_forwarding_rule_name"`
+}
+
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 	Comm                communicator.Config `mapstructure:",squash"`
 
-	InstallerApp string `mapstructure:"installer_app"`
-	SourceVMName string `mapstructure:"source_vm_name"`
+	InstallerApp string `mapstructure:"installer_app" required:"false"`
+	SourceVMName string `mapstructure:"source_vm_name" required:"false"`
 
-	VMName   string `mapstructure:"vm_name"`
-	DiskSize string `mapstructure:"disk_size"`
-	RAMSize  string `mapstructure:"ram_size"`
-	CPUCount string `mapstructure:"cpu_count"`
+	VMName   string `mapstructure:"vm_name" required:"true"`
+	DiskSize string `mapstructure:"disk_size" required:"false"`
+	RAMSize  string `mapstructure:"ram_size" required:"false"`
+	CPUCount string `mapstructure:"cpu_count" required:"false"`
 
-	PortForwardingRules []struct {
-		PortForwardingGuestPort int    `mapstructure:"port_forwarding_guest_port"`
-		PortForwardingHostPort  int    `mapstructure:"port_forwarding_host_port"`
-		PortForwardingRuleName  string `mapstructure:"port_forwarding_rule_name"`
-	} `mapstructure:"port_forwarding_rules,omitempty"`
+	PortForwardingRules []PortForwardingRule `mapstructure:"port_forwarding_rules,omitempty" required:"false"`
 
-	HWUUID     string `mapstructure:"hw_uuid,omitempty"`
-	BootDelay  string `mapstructure:"boot_delay"`
-	EnableHtt  bool   `mapstructure:"enable_htt"`
-	DisableHtt bool   `mapstructure:"disable_htt"`
-	UseAnkaCP bool `mapstructure:"use_anka_cp"`
+	HWUUID     string `mapstructure:"hw_uuid,omitempty" required:"false"`
+	BootDelay  string `mapstructure:"boot_delay" required:"false"`
+	EnableHtt  bool   `mapstructure:"enable_htt" required:"false"`
+	DisableHtt bool   `mapstructure:"disable_htt" required:"false"`
+	UseAnkaCP  bool   `mapstructure:"use_anka_cp" required:"false"`
 
 	ctx interpolate.Context
 }
@@ -48,8 +50,10 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 
 	var md mapstructure.Metadata
 	err := config.Decode(&c, &config.DecodeOpts{
-		Metadata:    &md,
-		Interpolate: true,
+		PluginType:         BuilderId,
+		Metadata:           &md,
+		Interpolate:        true,
+		InterpolateContext: &c.ctx,
 	}, raws...)
 	if err != nil {
 		return nil, err
@@ -58,7 +62,7 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 	// Accumulate any errors
 	var errs *packer.MultiError
 
-	// Default to the normal anku communicator type
+	// Default to the normal anka communicator type
 	if c.Comm.Type == "" {
 		c.Comm.Type = "anka"
 	}
@@ -90,6 +94,6 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 	if errs != nil && len(errs.Errors) > 0 {
 		return nil, errs
 	}
-	
+
 	return &c, nil
 }

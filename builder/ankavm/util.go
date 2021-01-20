@@ -1,4 +1,4 @@
-package anka
+package ankavm
 
 import (
 	"fmt"
