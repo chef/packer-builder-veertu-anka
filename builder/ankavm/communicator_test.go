@@ -10,20 +10,20 @@ import (
 	"strings"
 	"testing"
 
-	oldPacker "github.com/hashicorp/packer/packer"
-	"github.com/hashicorp/packer/packer-plugin-sdk/packer"
+	packer "github.com/hashicorp/packer/packer"
+	packersdk "github.com/hashicorp/packer/packer-plugin-sdk/packer"
 	"github.com/hashicorp/packer/packer-plugin-sdk/template"
 	"github.com/hashicorp/packer/provisioner/file"
 	"github.com/hashicorp/packer/provisioner/shell"
 )
 
 func TestCommunicator_impl(t *testing.T) {
-	var _ packer.Communicator = new(Communicator)
+	var _ packersdk.Communicator = new(Communicator)
 }
 
 // TestUploadDownload verifies that basic upload / download functionality works
 func TestUploadDownload(t *testing.T) {
-	ui := packer.TestUi(t)
+	ui := packersdk.TestUi(t)
 
 	tpl, err := template.Parse(strings.NewReader(ankaBuilderConfig))
 	if err != nil {
@@ -61,17 +61,16 @@ func TestUploadDownload(t *testing.T) {
 	defer os.Remove("my-strawberry-cake")
 
 	// Add hooks so the provisioners run during the build
-
-	hooks := map[string][]packer.Hook{}
-	hooks[packer.HookProvision] = []packer.Hook{
-		&oldPacker.ProvisionHook{
-			Provisioners: []*oldPacker.HookedProvisioner{
+	hooks := map[string][]packersdk.Hook{}
+	hooks[packersdk.HookProvision] = []packersdk.Hook{
+		&packer.ProvisionHook{
+			Provisioners: []*packer.HookedProvisioner{
 				{Provisioner: upload, Config: nil, TypeName: ""},
 				{Provisioner: download, Config: nil, TypeName: ""},
 			},
 		},
 	}
-	hook := &packer.DispatchHook{Mapping: hooks}
+	hook := &packersdk.DispatchHook{Mapping: hooks}
 
 	// Run things
 	artifact, err := builder.Run(context.Background(), ui, hook)
@@ -98,7 +97,7 @@ func TestUploadDownload(t *testing.T) {
 
 // TestShellProvisioner verifies that shell provisioning works
 func TestExecuteShellCommand(t *testing.T) {
-	ui := packer.TestUi(t)
+	ui := packersdk.TestUi(t)
 
 	tpl, err := template.Parse(strings.NewReader(ankaBuilderShellConfig))
 	if err != nil {
@@ -143,17 +142,24 @@ func TestExecuteShellCommand(t *testing.T) {
 	defer os.Remove("provisioner_log")
 
 	// Add hooks so the provisioners run during the build
+<<<<<<< HEAD
 	hooks := map[string][]packer.Hook{}
 	hooks[packer.HookProvision] = []packer.Hook{
 		&oldPacker.ProvisionHook{
 			Provisioners: []*oldPacker.HookedProvisioner{
+=======
+	hooks := map[string][]packersdk.Hook{}
+	hooks[packersdk.HookProvision] = []packersdk.Hook{
+		&packer.ProvisionHook{
+			Provisioners: []*packer.HookedProvisioner{
+>>>>>>> 39bd802 (Fix communicator tests)
 				{Provisioner: inline, Config: nil, TypeName: ""},
 				{Provisioner: scripts, Config: nil, TypeName: ""},
 				{Provisioner: download, Config: nil, TypeName: ""},
 			},
 		},
 	}
-	hook := &packer.DispatchHook{Mapping: hooks}
+	hook := &packersdk.DispatchHook{Mapping: hooks}
 
 	// Run things
 	artifact, err := builder.Run(context.Background(), ui, hook)

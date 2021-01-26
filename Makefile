@@ -7,7 +7,8 @@ SOURCES := $(shell find . -name '*.go')
 .PHONY: test packer-test clean clean-images
 
 test:
-	go test -v builder/anka/*.go
+	go test -v builder/ankavm/*.go
+	go test -v post-processor/ankaregistry/*.go
 
 build: $(BIN)
 $(BIN):
