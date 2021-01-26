@@ -4,24 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/groob/plist"
 	"github.com/hashicorp/packer/packer-plugin-sdk/multistep"
 	"github.com/hashicorp/packer/packer-plugin-sdk/packer"
+	"github.com/hashicorp/packer/packer-plugin-sdk/random"
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
 	"github.com/veertuinc/packer-builder-veertu-anka/common"
 )
-
-var random *rand.Rand
-
-func init() {
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
 
 type StepCreateVM struct {
 	client *client.Client
@@ -193,7 +186,7 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 
 	clonedVMName := config.VMName
 	if clonedVMName == "" { // If user doesn't give a vm_name, generate one
-		clonedVMName = fmt.Sprintf("anka-packer-%s", randSeq(10))
+		clonedVMName = fmt.Sprintf("anka-packer-%s", random.AlphaNum(10))
 	}
 
 	if createSourceVM {
@@ -323,16 +316,6 @@ func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
 		s.client.Delete(client.DeleteParams{VMName: s.vmName})
 		panic(err)
 	}
-}
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[random.Intn(len(letters))]
-	}
-	return string(b)
 }
 
 func obtainMacOSVersionFromInstallerApp(path string) (string, error) {

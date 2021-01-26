@@ -3,12 +3,12 @@ package ankavm
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/packer/packer-plugin-sdk/common"
 	"github.com/hashicorp/packer/packer-plugin-sdk/communicator"
 	"github.com/hashicorp/packer/packer-plugin-sdk/packer"
+	"github.com/hashicorp/packer/packer-plugin-sdk/random"
 	"github.com/hashicorp/packer/packer-plugin-sdk/template/config"
 	"github.com/hashicorp/packer/packer-plugin-sdk/template/interpolate"
 	"github.com/mitchellh/mapstructure"
@@ -58,7 +58,6 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// Accumulate any errors
 	var errs *packer.MultiError
 
@@ -78,7 +77,7 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 				errs = packer.MultiErrorAppend(errs, errors.New("guest port is required"))
 			}
 			if rule.PortForwardingRuleName == "" {
-				c.PortForwardingRules[index].PortForwardingRuleName = fmt.Sprintf("%s", randSeq(10))
+				c.PortForwardingRules[index].PortForwardingRuleName = random.AlphaNum(10)
 			}
 		}
 	}
