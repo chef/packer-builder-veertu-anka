@@ -2,7 +2,7 @@ package client
 
 import (
 	// "syscall"
-	"io"
+
 	"log"
 	"os"
 	"os/exec"
@@ -11,16 +11,6 @@ import (
 
 	"github.com/hashicorp/packer/packer-plugin-sdk/packer"
 )
-
-type RunParams struct {
-	VMName         string
-	Volume         string
-	Command        []string
-	Stdin          io.Reader
-	Stdout, Stderr io.Writer
-	Debug          bool
-	User           string
-}
 
 type Runner struct {
 	params  RunParams
@@ -82,14 +72,14 @@ func (r *Runner) Start() error {
 	}
 	cmdString := strings.Join(r.params.Command, " ")
 	log.Print("Executing on sh: ", cmdString)
-	stdin.Write([]byte(cmdString))
+	_, _ = stdin.Write([]byte(cmdString))
 	stdin.Close()
 	return err
 }
 
 func (r *Runner) Wait() (error, int) {
 	err := r.cmd.Wait()
-	log.Printf("Command finished in %s with %v", time.Now().Sub(r.started), err)
+	log.Printf("Command finished in %s with %v", time.Since(r.started), err)
 	return err, getExitCode(err)
 }
 
