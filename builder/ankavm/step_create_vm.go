@@ -106,7 +106,7 @@ func (s *StepCreateVM) modifyVMProperties(describeResponse client.DescribeRespon
 
 	if len(config.PortForwardingRules) > 0 {
 		// Check if the rule already exists
-		existingForwardedPorts := make(map[int]struct{}, 0)
+		existingForwardedPorts := make(map[int]struct{})
 		for _, existingNetworkCard := range describeResponse.NetworkCards {
 			for _, existingPortForwardingRule := range existingNetworkCard.PortForwardingRules {
 				existingForwardedPorts[existingPortForwardingRule.HostPort] = struct{}{}
@@ -123,7 +123,7 @@ func (s *StepCreateVM) modifyVMProperties(describeResponse client.DescribeRespon
 				return err
 			}
 			err := s.client.Modify(showResponse.Name, "add", "port-forwarding", "--host-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort), "--guest-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingGuestPort), wantedPortForwardingRule.PortForwardingRuleName)
-			if config.PackerConfig.PackerForce == false { // If force is enabled, just skip
+			if !config.PackerConfig.PackerForce { // If force is enabled, just skip
 				if err != nil {
 					return err
 				}
@@ -313,7 +313,7 @@ func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
 	})
 	if err != nil {
 		ui.Error(fmt.Sprint(err))
-		s.client.Delete(client.DeleteParams{VMName: s.vmName})
+		_ = s.client.Delete(client.DeleteParams{VMName: s.vmName})
 		panic(err)
 	}
 }
@@ -335,13 +335,16 @@ func obtainMacOSVersionFromInstallerApp(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to stat installer app info plist at %q: %w", plistPath, err)
 	}
-	plistContent, err := os.Open(plistPath)
+	plistContent, _ := os.Open(plistPath)
 
 	var installAppPlist struct {
 		PlatformVersion string `plist:"DTPlatformVersion"`
 		ShortVersion    string `plist:"CFBundleShortVersionString"`
 	}
-	plist.NewXMLDecoder(plistContent).Decode(&installAppPlist)
+	err = plist.NewXMLDecoder(plistContent).Decode(&installAppPlist)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode app info plist content: %w", err)
+	}
 
 	return fmt.Sprintf("%s-%s", installAppPlist.PlatformVersion, installAppPlist.ShortVersion), nil
 }

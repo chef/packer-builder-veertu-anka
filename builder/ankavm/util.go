@@ -39,6 +39,4 @@ func convertDiskSizeToBytes(diskSize string) (error, uint64) {
 	default:
 		return fmt.Errorf("Invalid disk size suffix: %s", suffix), uint64(0)
 	}
-
-	return fmt.Errorf("Unkown error"), uint64(0)
 }
