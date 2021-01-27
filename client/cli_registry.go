@@ -1,16 +1,35 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 )
 
-// https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#registry-list-repos
-type RegistryRepo struct {
-	ID     string
-	Host   string
-	Scheme string
-	Port   string
+// https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#registry-list
+type RegistryListResponse struct {
+	Latest string `json:"latest"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+}
+
+func (c *Client) RegistryList(registryParams RegistryParams) ([]RegistryListResponse, error) {
+	output, err := runAnkaRegistryCommand(registryParams, "list")
+	if err != nil {
+		return nil, err
+	}
+	if output.Status != "OK" {
+		log.Print("Error executing registry list command: ", output.ExceptionType, " ", output.Message)
+		return nil, fmt.Errorf(output.Message)
+	}
+
+	var response []RegistryListResponse
+	err = json.Unmarshal(output.Body, &response)
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
 }
 
 // https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#registry-push

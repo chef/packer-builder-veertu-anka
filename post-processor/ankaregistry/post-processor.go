@@ -89,7 +89,7 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 	if p.config.PackerConfig.PackerForce {
 		var id string
 
-		templates, err := ankaClient.RegistryList()
+		templates, err := ankaClient.RegistryList(registryParams)
 		if err != nil {
 			return nil, false, false, err
 		}

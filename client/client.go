@@ -16,6 +16,14 @@ type Client struct {
 	RegistryURL string
 }
 
+// https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#registry-list-repos
+type DefaultRegistryRepoResponse struct {
+	ID     string `json:"id"`
+	Host   string `json:"host"`
+	Scheme string `json:"scheme"`
+	Port   string `json:"port"`
+}
+
 func NewClient() *Client {
 	registryURL := ""
 
@@ -24,7 +32,7 @@ func NewClient() *Client {
 		log.Printf("Could not determine Registry URL for default registry")
 	}
 
-	var response RegistryRepo
+	var response DefaultRegistryRepoResponse
 	err = json.Unmarshal(output.Body, &response)
 	if err == nil {
 		registryURL = fmt.Sprintf("%s://%s:%s", response.Scheme, response.Host, response.Port)
