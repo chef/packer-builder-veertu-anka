@@ -30,6 +30,7 @@ type Config struct {
 	Tag         string `mapstructure:"tag"`
 	Description string `mapstructure:"description"`
 	RemoteVM    string `mapstructure:"remote-vm"`
+	Local       bool   `mapstructure:"local"`
 
 	ctx interpolate.Context
 }
@@ -82,6 +83,7 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 		Tag:         p.config.Tag,
 		Description: p.config.Description,
 		RemoteVM:    p.config.RemoteVM,
+		Local:       p.config.Local,
 		VMName:      artifact.String(),
 	}
 

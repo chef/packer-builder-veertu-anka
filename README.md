@@ -189,6 +189,10 @@ Boolean. Skip TLS verification.
 
 String. Path to your node certificate key if the client/node certificate doesn't contain one.
 
+#### `local`
+
+Boolean. Assign a tag to your local template and avoid pushing to the Registry.
+
 #### `registry-path`
 
 String. The registry URL (instead of 'default').

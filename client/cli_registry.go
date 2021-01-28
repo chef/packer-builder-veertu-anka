@@ -38,6 +38,7 @@ type RegistryPushParams struct {
 	Tag         string
 	Description string
 	RemoteVM    string
+	Local       bool
 }
 
 func (c *Client) RegistryPush(registryParams RegistryParams, pushParams RegistryPushParams) error {
@@ -50,6 +51,9 @@ func (c *Client) RegistryPush(registryParams RegistryParams, pushParams Registry
 	}
 	if pushParams.RemoteVM != "" {
 		cmdArgs = append(cmdArgs, "--remote-vm", pushParams.RemoteVM)
+	}
+	if pushParams.Local {
+		cmdArgs = append(cmdArgs, "--local")
 	}
 	cmdArgs = append(cmdArgs, pushParams.VMName)
 
