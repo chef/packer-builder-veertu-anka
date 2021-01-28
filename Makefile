@@ -14,7 +14,6 @@ hcl2spec:
 	GOOS=darwin GOBIN=$(shell pwd) go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
 	GOOS=darwin PATH="$(shell pwd):${PATH}" go generate builder/ankavm/config.go
 	GOOS=darwin PATH="$(shell pwd):${PATH}" go generate post-processor/ankaregistry/post-processor.go
-	GOOS=darwin PATH="$(shell pwd):${PATH}" go generate post-processor/ankastop/post-processor.go
 
 build: $(BIN)
 $(BIN): hcl2spec

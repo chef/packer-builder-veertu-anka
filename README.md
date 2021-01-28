@@ -163,10 +163,6 @@ Boolean. If true, will stop the VM after it as been built (if applicable). If fa
 
 String. The name for the VM that is created. One is generated if not provided (`anka-packer-{10RandomCharacters}`).
 
-## `veertu-anka-stop` Post Processor
-
-This post-processor requires no configuration. It will simply stop your VM after it has been built.
-
 ## `veertu-anka-registry` Post Processor
 
 ### Required Configuration
