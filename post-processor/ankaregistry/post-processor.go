@@ -5,6 +5,7 @@ package ankaregistry
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/packer/packer-plugin-sdk/common"
@@ -56,6 +57,8 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 	if p.config.Tag == "" {
 		return fmt.Errorf("You must specify a valid tag for your Veertu Anka VM (e.g. 'latest')")
 	}
+
+	log.Printf("%+v\n", p.config)
 
 	return nil
 }
