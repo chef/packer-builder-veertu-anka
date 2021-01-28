@@ -231,9 +231,17 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 	}
 
 	if show.IsRunning() {
-		ui.Say(fmt.Sprintf("Suspending VM %s", sourceVMName))
-		if err := s.client.Suspend(client.SuspendParams{VMName: sourceVMName}); err != nil {
-			return onError(err)
+		switch config.SourceVMBehavior {
+		case "suspend":
+			ui.Say(fmt.Sprintf("Suspending VM %s", sourceVMName))
+			if err := s.client.Suspend(client.SuspendParams{VMName: sourceVMName}); err != nil {
+				return onError(err)
+			}
+		case "stop":
+			ui.Say(fmt.Sprintf("Stopping VM %s", sourceVMName))
+			if err := s.client.Stop(client.StopParams{VMName: sourceVMName}); err != nil {
+				return onError(err)
+			}
 		}
 	}
 

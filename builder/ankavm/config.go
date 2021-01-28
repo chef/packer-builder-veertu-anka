@@ -3,6 +3,7 @@ package ankavm
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/packer/packer-plugin-sdk/common"
@@ -14,7 +15,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-const DEFAULT_BOOT_DELAY = "10s"
+const (
+	DEFAULT_BOOT_DELAY         = "10s"
+	DEFAULT_SOURCE_VM_BEHAVIOR = "suspend"
+)
 
 type PortForwardingRule struct {
 	PortForwardingGuestPort int    `mapstructure:"port_forwarding_guest_port"`
@@ -33,6 +37,8 @@ type Config struct {
 	DiskSize string `mapstructure:"disk_size" required:"false"`
 	RAMSize  string `mapstructure:"ram_size" required:"false"`
 	CPUCount string `mapstructure:"cpu_count" required:"false"`
+
+	SourceVMBehavior string `mapstructure:"source_vm_behavior" required:"false"`
 
 	PortForwardingRules []PortForwardingRule `mapstructure:"port_forwarding_rules,omitempty" required:"false"`
 
@@ -80,6 +86,21 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 				c.PortForwardingRules[index].PortForwardingRuleName = random.AlphaNum(10)
 			}
 		}
+	}
+
+	if c.SourceVMBehavior == "" {
+		c.SourceVMBehavior = DEFAULT_SOURCE_VM_BEHAVIOR
+	}
+
+	invalidSourceVMBehavior := true
+	supportedSourceVMBehaviors := []string{"suspend", "stop"}
+	for _, behavior := range supportedSourceVMBehaviors {
+		if behavior == c.SourceVMBehavior {
+			invalidSourceVMBehavior = false
+		}
+	}
+	if invalidSourceVMBehavior {
+		errs = packer.MultiErrorAppend(errs, fmt.Errorf("%s is not a supported source_vm_behavior", c.SourceVMBehavior))
 	}
 
 	if strings.ContainsAny(c.SourceVMName, " \n") {
