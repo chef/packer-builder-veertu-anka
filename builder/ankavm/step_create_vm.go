@@ -231,15 +231,14 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 	}
 
 	if show.IsRunning() {
-		switch config.SourceVMBehavior {
-		case "suspend":
-			ui.Say(fmt.Sprintf("Suspending VM %s", sourceVMName))
-			if err := s.client.Suspend(client.SuspendParams{VMName: sourceVMName}); err != nil {
-				return onError(err)
-			}
-		case "stop":
+		if config.StopSourceVM {
 			ui.Say(fmt.Sprintf("Stopping VM %s", sourceVMName))
 			if err := s.client.Stop(client.StopParams{VMName: sourceVMName}); err != nil {
+				return onError(err)
+			}
+		} else {
+			ui.Say(fmt.Sprintf("Suspending VM %s", sourceVMName))
+			if err := s.client.Suspend(client.SuspendParams{VMName: sourceVMName}); err != nil {
 				return onError(err)
 			}
 		}
@@ -290,6 +289,7 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
 	var err error
 
+	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packer.Ui)
 
 	log.Println("Cleaning up create VM step")
@@ -316,9 +316,16 @@ func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
 		}
 	}
 
-	err = s.client.Suspend(client.SuspendParams{
-		VMName: s.vmName,
-	})
+	if config.StopBuildVM {
+		err = s.client.Stop(client.StopParams{
+			VMName: s.vmName,
+		})
+	} else {
+		err = s.client.Suspend(client.SuspendParams{
+			VMName: s.vmName,
+		})
+	}
+
 	if err != nil {
 		ui.Error(fmt.Sprint(err))
 		_ = s.client.Delete(client.DeleteParams{VMName: s.vmName})

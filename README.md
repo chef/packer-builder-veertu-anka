@@ -151,9 +151,13 @@ String. The size in "[0-9]+G" format, defaults to `2G`.
 
 String. The VM to clone for provisioning, either stopped or suspended.
 
-#### `source_vm_behavior`
+#### `stop_source_vm`
 
-String. The behavior you wish to take against your source VM after it has been built (if applicable). Must be either `stop` or `suspend`. Defaults to `suspend`.
+Boolean. If true, will stop the Source VM after it as been built (if applicable). If false, will suspend the Source VM. Defaults to false.
+
+#### `stop_vm`
+
+Boolean. If true, will stop the VM after it as been built (if applicable). If false, will suspend the VM. Defaults to false.
 
 #### `vm_name`
 
