@@ -88,15 +88,15 @@ This will clone `10.15.6` to a new VM and, if there are differences from the bas
 
 > Check out the [examples directory](./examples) to see how port-forwarding and other options are used
 
-## `veertu-anka-vm` Builder Configuration
+## `veertu-anka-vm` Builder
 
-### Required
+### Required Configuration
 
 #### `type`
 
 String. Must be `veertu-anka-vm`.
 
-### Optional
+### Optional Configuration
 
 #### `boot_delay`
 
@@ -151,13 +151,21 @@ String. The size in "[0-9]+G" format, defaults to `2G`.
 
 String. The VM to clone for provisioning, either stopped or suspended.
 
+#### `source_vm_behavior`
+
+String. The behavior you wish to take against your source VM after it has been built (if applicable). Must be either `stop` or `suspend`. Defaults to `suspend`.
+
 #### `vm_name`
 
 String. The name for the VM that is created. One is generated if not provided (`anka-packer-{10RandomCharacters}`).
 
-## `veertu-anka-registry` Post Processor Configuration
+## `veertu-anka-stop` Post Processor
 
-### Required
+This post-processor requires no configuration. It will simply stop your VM after it has been built.
+
+## `veertu-anka-registry` Post Processor
+
+### Required Configuration
 
 #### `type`
 
@@ -167,7 +175,7 @@ String. Must be `veertu-anka-registry`.
 
 String. The name of the tag to push.
 
-### Optional
+### Optional Configuration
 
 #### `cacert`
 
