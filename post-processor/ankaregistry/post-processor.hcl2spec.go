@@ -26,6 +26,7 @@ type FlatConfig struct {
 	Tag                 *string           `mapstructure:"tag" cty:"tag" hcl:"tag"`
 	Description         *string           `mapstructure:"description" cty:"description" hcl:"description"`
 	RemoteVM            *string           `mapstructure:"remote-vm" cty:"remote-vm" hcl:"remote-vm"`
+	Local               *bool             `mapstructure:"local" cty:"local" hcl:"local"`
 }
 
 // FlatMapstructure returns a new FlatConfig.
@@ -57,6 +58,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"tag":                        &hcldec.AttrSpec{Name: "tag", Type: cty.String, Required: false},
 		"description":                &hcldec.AttrSpec{Name: "description", Type: cty.String, Required: false},
 		"remote-vm":                  &hcldec.AttrSpec{Name: "remote-vm", Type: cty.String, Required: false},
+		"local":                      &hcldec.AttrSpec{Name: "local", Type: cty.Bool, Required: false},
 	}
 	return s
 }

@@ -72,6 +72,8 @@ type FlatConfig struct {
 	DiskSize                  *string                  `mapstructure:"disk_size" required:"false" cty:"disk_size" hcl:"disk_size"`
 	RAMSize                   *string                  `mapstructure:"ram_size" required:"false" cty:"ram_size" hcl:"ram_size"`
 	CPUCount                  *string                  `mapstructure:"cpu_count" required:"false" cty:"cpu_count" hcl:"cpu_count"`
+	StopBuildVM               *bool                    `mapstructure:"stop_vm" required:"false" cty:"stop_vm" hcl:"stop_vm"`
+	StopSourceVM              *bool                    `mapstructure:"stop_source_vm" required:"false" cty:"stop_source_vm" hcl:"stop_source_vm"`
 	PortForwardingRules       []FlatPortForwardingRule `mapstructure:"port_forwarding_rules,omitempty" required:"false" cty:"port_forwarding_rules" hcl:"port_forwarding_rules"`
 	HWUUID                    *string                  `mapstructure:"hw_uuid,omitempty" required:"false" cty:"hw_uuid" hcl:"hw_uuid"`
 	BootDelay                 *string                  `mapstructure:"boot_delay" required:"false" cty:"boot_delay" hcl:"boot_delay"`
@@ -155,6 +157,8 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"disk_size":                    &hcldec.AttrSpec{Name: "disk_size", Type: cty.String, Required: false},
 		"ram_size":                     &hcldec.AttrSpec{Name: "ram_size", Type: cty.String, Required: false},
 		"cpu_count":                    &hcldec.AttrSpec{Name: "cpu_count", Type: cty.String, Required: false},
+		"stop_vm":                      &hcldec.AttrSpec{Name: "stop_vm", Type: cty.Bool, Required: false},
+		"stop_source_vm":               &hcldec.AttrSpec{Name: "stop_source_vm", Type: cty.Bool, Required: false},
 		"port_forwarding_rules":        &hcldec.BlockListSpec{TypeName: "port_forwarding_rules", Nested: hcldec.ObjectSpec((*FlatPortForwardingRule)(nil).HCL2Spec())},
 		"hw_uuid":                      &hcldec.AttrSpec{Name: "hw_uuid", Type: cty.String, Required: false},
 		"boot_delay":                   &hcldec.AttrSpec{Name: "boot_delay", Type: cty.String, Required: false},
