@@ -16,7 +16,7 @@ import (
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
 )
 
-const BuilderIdImport = "packer.post-processor.veertu-anka-registry"
+const BuilderIdRegistry = "packer.post-processor.veertu-anka-registry"
 
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
@@ -44,6 +44,7 @@ func (p *PostProcessor) ConfigSpec() hcldec.ObjectSpec { return p.config.FlatMap
 
 func (p *PostProcessor) Configure(raws ...interface{}) error {
 	err := config.Decode(&p.config, &config.DecodeOpts{
+		PluginType:         BuilderIdRegistry,
 		Interpolate:        true,
 		InterpolateContext: &p.config.ctx,
 		InterpolateFilter: &interpolate.RenderFilter{
@@ -91,7 +92,7 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 	}
 
 	// If force is true, revert the template tag (if one exists) on the registry so we can push the VM without issue
-	if p.config.PackerConfig.PackerForce {
+	if p.config.PackerForce {
 		var id string
 
 		templates, err := ankaClient.RegistryList(registryParams)

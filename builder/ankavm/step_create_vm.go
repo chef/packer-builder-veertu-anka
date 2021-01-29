@@ -123,7 +123,7 @@ func (s *StepCreateVM) modifyVMProperties(describeResponse client.DescribeRespon
 				return err
 			}
 			err := s.client.Modify(showResponse.Name, "add", "port-forwarding", "--host-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort), "--guest-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingGuestPort), wantedPortForwardingRule.PortForwardingRuleName)
-			if !config.PackerConfig.PackerForce { // If force is enabled, just skip
+			if !config.PackerForce { // If force is enabled, just skip
 				if err != nil {
 					return err
 				}
@@ -248,7 +248,7 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 
 	// If the user forces the build (packer build --force), delete the existing VM that would fail the build
 	exists, err := s.client.Exists(clonedVMName)
-	if exists && config.PackerConfig.PackerForce {
+	if exists && config.PackerForce {
 		ui.Say(fmt.Sprintf("Deleting existing virtual machine %s", clonedVMName))
 		if err = s.client.Delete(client.DeleteParams{VMName: clonedVMName}); err != nil {
 			return onError(err)
