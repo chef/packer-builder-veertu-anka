@@ -92,29 +92,29 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 	}
 
 	// If force is true, revert the template tag (if one exists) on the registry so we can push the VM without issue
-	if p.config.PackerForce {
-		var id string
+	// if p.config.PackerForce {
+	var id string
 
-		templates, err := ankaClient.RegistryList(registryParams)
-		if err != nil {
-			return nil, false, false, err
-		}
+	templates, err := ankaClient.RegistryList(registryParams)
+	if err != nil {
+		return nil, false, false, err
+	}
 
-		for i := 0; i < len(templates); i++ {
-			if templates[i].Name == artifact.String() {
-				id = templates[i].ID
-				ui.Say(fmt.Sprintf("Found existing template %s on registry that matches name '%s'", id, artifact.String()))
-				break
-			}
-		}
-
-		if id != "" {
-			if err := ankaClient.RegistryRevert(id); err != nil {
-				return nil, false, false, err
-			}
-			ui.Say(fmt.Sprintf("Reverted latest tag for template '%s' on registry", id))
+	for i := 0; i < len(templates); i++ {
+		if templates[i].Name == artifact.String() {
+			id = templates[i].ID
+			ui.Say(fmt.Sprintf("Found existing template %s on registry that matches name '%s'", id, artifact.String()))
+			break
 		}
 	}
+
+	if id != "" {
+		if err := ankaClient.RegistryRevert(id); err != nil {
+			return nil, false, false, err
+		}
+		ui.Say(fmt.Sprintf("Reverted latest tag for template '%s' on registry", id))
+	}
+	// }
 
 	pushErr := ankaClient.RegistryPush(registryParams, pushParams)
 
