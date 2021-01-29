@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/hashicorp/packer/packer-plugin-sdk/net"
@@ -14,6 +15,8 @@ func registryRESTRequest(method string, url string, body io.Reader) (machineRead
 	if err != nil {
 		return machineReadableOutput{}, err
 	}
+
+	log.Printf("[API REQUEST] [%s] %s", method, url)
 
 	httpClient := net.HttpClientWithEnvironmentProxy()
 	resp, err := httpClient.Do(request)
@@ -27,6 +30,8 @@ func registryRESTRequest(method string, url string, body io.Reader) (machineRead
 		if err != nil {
 			return machineReadableOutput{}, err
 		}
+
+		log.Printf("[API RESPONSE] %s", string(body))
 
 		return parseOutput(body)
 	}

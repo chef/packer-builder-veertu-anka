@@ -34,7 +34,7 @@ func (c *Client) RegistryList(registryParams RegistryParams) ([]RegistryListResp
 
 // https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#registry-push
 type RegistryPushParams struct {
-	VMName      string
+	VMID        string
 	Tag         string
 	Description string
 	RemoteVM    string
@@ -55,7 +55,7 @@ func (c *Client) RegistryPush(registryParams RegistryParams, pushParams Registry
 	if pushParams.Local {
 		cmdArgs = append(cmdArgs, "--local")
 	}
-	cmdArgs = append(cmdArgs, pushParams.VMName)
+	cmdArgs = append(cmdArgs, pushParams.VMID)
 
 	output, err := runAnkaRegistryCommand(registryParams, cmdArgs...)
 	if err != nil {

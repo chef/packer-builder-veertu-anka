@@ -83,12 +83,22 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 		IsInsecure:   p.config.IsInsecure,
 	}
 
+	remoteVMName := artifact.String()
+	if p.config.RemoteVM != "" {
+		remoteVMName = p.config.RemoteVM
+	}
+
+	remoteTag := "latest"
+	if p.config.Tag != "" {
+		remoteTag = p.config.Tag
+	}
+
 	pushParams := client.RegistryPushParams{
-		Tag:         p.config.Tag,
+		Tag:         remoteTag,
 		Description: p.config.Description,
-		RemoteVM:    p.config.RemoteVM,
+		RemoteVM:    remoteVMName,
 		Local:       p.config.Local,
-		VMName:      artifact.String(),
+		VMID:        artifact.Id(),
 	}
 
 	// If force is true, revert the template tag (if one exists) on the registry so we can push the VM without issue
@@ -101,9 +111,9 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 	}
 
 	for i := 0; i < len(templates); i++ {
-		if templates[i].Name == artifact.String() {
+		if templates[i].Name == remoteVMName {
 			id = templates[i].ID
-			ui.Say(fmt.Sprintf("Found existing template %s on registry that matches name '%s'", id, artifact.String()))
+			ui.Say(fmt.Sprintf("Found existing template %s on registry that matches name '%s'", id, remoteVMName))
 			break
 		}
 	}
@@ -116,6 +126,7 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 	}
 	// }
 
+	ui.Say(fmt.Sprintf("Pushing template %s to Anka Registry as %s with tag %s", id, remoteVMName, remoteTag))
 	pushErr := ankaClient.RegistryPush(registryParams, pushParams)
 
 	return artifact, true, false, pushErr

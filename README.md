@@ -171,10 +171,6 @@ String. The name for the VM that is created. One is generated if not provided (`
 
 String. Must be `veertu-anka-registry`.
 
-#### `tag`
-
-String. The name of the tag to push.
-
 ### Optional Configuration
 
 #### `cacert`
@@ -212,6 +208,10 @@ String. The registry name (instead of 'default').
 #### `remote-vm`
 
 String. The name of a registry template you want to push the local template (and tag) onto.
+
+#### `tag`
+
+String. The name of the tag to push. Defaults to 'latest'.
 
 
 ## Development
