@@ -61,7 +61,7 @@ func (s *StepCreateVM) modifyVMResources(showResponse client.ShowResponse, confi
 			}
 		}
 		if diskSizeBytes < showResponse.HardDrive {
-			return fmt.Errorf("Shrinking VM disks is not allowed! Source VM Disk Size (bytes): %v", showResponse.HardDrive)
+			return fmt.Errorf("Shrinking VM disks is not allowed! Source VM Disk Size: %v", convertDiskSizeFromBytes(showResponse.HardDrive))
 		}
 	}
 
