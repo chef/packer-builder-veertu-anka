@@ -17,7 +17,7 @@ type CopyParams struct {
 }
 
 func (c *Client) Copy(params CopyParams) error {
-	_, err := runAnkaCommand("cp", "-af", params.Src, params.Dst)
+	_, err := runAnkaCommand("cp", "-pRLf", params.Src, params.Dst)
 	return err
 }
 
