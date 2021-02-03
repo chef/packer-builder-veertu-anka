@@ -45,6 +45,7 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 
 	steps := []multistep.Step{
 		&StepTempDir{},
+		&StepPrepareSourceVM{},
 		&StepCreateVM{},
 		&StepSetHyperThreading{},
 		&StepStartVM{},

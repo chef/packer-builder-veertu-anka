@@ -21,14 +21,143 @@ type StepCreateVM struct {
 	vmName string
 }
 
-const (
-	DEFAULT_DISK_SIZE = "40G"
-	DEFAULT_RAM_SIZE  = "4G"
-	DEFAULT_CPU_COUNT = "2"
-)
+func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
+	config := state.Get("config").(*Config)
+	ui := state.Get("ui").(packer.Ui)
+	source_vm := state.Get("source_vm_show").(client.ShowResponse)
+	s.client = state.Get("client").(*client.Client)
+
+	onError := func(err error) multistep.StepAction {
+		return stepError(ui, state, err)
+	}
+
+	clonedVMName := config.VMName
+	if clonedVMName == "" { // If user doesn't give a vm_name, generate one
+		clonedVMName = fmt.Sprintf("anka-packer-%s", random.AlphaNum(10))
+	}
+	s.vmName = clonedVMName
+	state.Put("vm_name", clonedVMName)
+
+	// If the user forces the build (packer build --force), delete the existing VM that would fail the build
+	exists, err := s.client.Exists(client.ExistsParams{Name: clonedVMName})
+	if exists && config.PackerForce {
+		ui.Say(fmt.Sprintf("Deleting existing virtual machine %s", clonedVMName))
+		if err = s.client.Delete(client.DeleteParams{VMName: clonedVMName}); err != nil {
+			return onError(err)
+		}
+	}
+	if err != nil {
+		return onError(err)
+	}
+
+	ui.Say(fmt.Sprintf("Cloning source VM %s into a new virtual machine: %s", source_vm.Name, clonedVMName))
+	if err = s.client.Clone(client.CloneParams{VMName: clonedVMName, SourceUUID: source_vm.UUID}); err != nil {
+		return onError(err)
+	}
+
+	showResponse, err := s.client.Show(clonedVMName)
+	if err != nil {
+		return onError(err)
+	}
+
+	if err := s.modifyVMResources(showResponse, config, ui); err != nil {
+		return onError(err)
+	}
+
+	describeResponse, err := s.client.Describe(clonedVMName)
+	if err != nil {
+		return onError(err)
+	}
+	state.Put("instance_id", describeResponse.UUID) // Expose the VM UUID as the "ID" contextual build variable
+
+	if err := s.modifyVMProperties(describeResponse, showResponse, config, ui); err != nil {
+		return onError(err)
+	}
+
+	return multistep.ActionContinue
+}
+
+func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
+	ui := state.Get("ui").(packer.Ui)
+
+	log.Println("Cleaning up create VM step")
+	if s.vmName == "" {
+		return
+	}
+
+	_, halted := state.GetOk(multistep.StateHalted)
+	_, canceled := state.GetOk(multistep.StateCancelled)
+	errorObj := state.Get("error")
+	switch errorObj.(type) {
+	case *common.VMAlreadyExistsError:
+		return
+	case *common.VMNotFoundException:
+		return
+	default:
+		if halted || canceled {
+			ui.Say(fmt.Sprintf("Deleting VM %s", s.vmName))
+			if err := s.client.Delete(client.DeleteParams{VMName: s.vmName}); err != nil {
+				ui.Error(fmt.Sprint(err))
+			}
+			return
+		}
+	}
+
+	if err := s.client.Suspend(client.SuspendParams{VMName: s.vmName}); err != nil {
+		ui.Error(fmt.Sprint(err))
+		_ = s.client.Delete(client.DeleteParams{VMName: s.vmName})
+		panic(err)
+	}
+}
+
+func (s *StepCreateVM) modifyVMProperties(describeResponse client.DescribeResponse, showResponse client.ShowResponse, config *Config, ui packer.Ui) error {
+	stopParams := client.StopParams{
+		VMName: showResponse.Name,
+		Force:  true,
+	}
+
+	if len(config.PortForwardingRules) > 0 {
+		// Check if the rule already exists
+		existingForwardedPorts := make(map[int]struct{})
+		for _, existingNetworkCard := range describeResponse.NetworkCards {
+			for _, existingPortForwardingRule := range existingNetworkCard.PortForwardingRules {
+				existingForwardedPorts[existingPortForwardingRule.HostPort] = struct{}{}
+			}
+		}
+		for _, wantedPortForwardingRule := range config.PortForwardingRules {
+			ui.Say(fmt.Sprintf("Ensuring %s port-forwarding (Guest Port: %s, Host Port: %s, Rule Name: %s)", showResponse.Name, strconv.Itoa(wantedPortForwardingRule.PortForwardingGuestPort), strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort), wantedPortForwardingRule.PortForwardingRuleName))
+			// Check if host port is set already and warn the user
+			if _, ok := existingForwardedPorts[wantedPortForwardingRule.PortForwardingHostPort]; ok {
+				ui.Error(fmt.Sprintf("Found an existing host port rule (%s)! Skipping without setting...", strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort)))
+				continue
+			}
+			if err := s.client.Stop(stopParams); err != nil {
+				return err
+			}
+			err := s.client.Modify(showResponse.Name, "add", "port-forwarding", "--host-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort), "--guest-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingGuestPort), wantedPortForwardingRule.PortForwardingRuleName)
+			if !config.PackerForce { // If force is enabled, just skip
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if config.HWUUID != "" {
+		if err := s.client.Stop(stopParams); err != nil {
+			return err
+		}
+		ui.Say(fmt.Sprintf("Modifying VM custom-variable hw.UUID to %s", config.HWUUID))
+		err := s.client.Modify(showResponse.Name, "set", "custom-variable", "hw.UUID", config.HWUUID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func (s *StepCreateVM) modifyVMResources(showResponse client.ShowResponse, config *Config, ui packer.Ui) error {
-
 	stopParams := client.StopParams{
 		VMName: showResponse.Name,
 		Force:  true,
@@ -94,246 +223,6 @@ func (s *StepCreateVM) modifyVMResources(showResponse client.ShowResponse, confi
 	}
 
 	return nil
-
-}
-
-func (s *StepCreateVM) modifyVMProperties(describeResponse client.DescribeResponse, showResponse client.ShowResponse, config *Config, ui packer.Ui) error {
-
-	stopParams := client.StopParams{
-		VMName: showResponse.Name,
-		Force:  true,
-	}
-
-	if len(config.PortForwardingRules) > 0 {
-		// Check if the rule already exists
-		existingForwardedPorts := make(map[int]struct{})
-		for _, existingNetworkCard := range describeResponse.NetworkCards {
-			for _, existingPortForwardingRule := range existingNetworkCard.PortForwardingRules {
-				existingForwardedPorts[existingPortForwardingRule.HostPort] = struct{}{}
-			}
-		}
-		for _, wantedPortForwardingRule := range config.PortForwardingRules {
-			ui.Say(fmt.Sprintf("Ensuring %s port-forwarding (Guest Port: %s, Host Port: %s, Rule Name: %s)", showResponse.Name, strconv.Itoa(wantedPortForwardingRule.PortForwardingGuestPort), strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort), wantedPortForwardingRule.PortForwardingRuleName))
-			// Check if host port is set already and warn the user
-			if _, ok := existingForwardedPorts[wantedPortForwardingRule.PortForwardingHostPort]; ok {
-				ui.Error(fmt.Sprintf("Found an existing host port rule (%s)! Skipping without setting...", strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort)))
-				continue
-			}
-			if err := s.client.Stop(stopParams); err != nil {
-				return err
-			}
-			err := s.client.Modify(showResponse.Name, "add", "port-forwarding", "--host-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort), "--guest-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingGuestPort), wantedPortForwardingRule.PortForwardingRuleName)
-			if !config.PackerForce { // If force is enabled, just skip
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	if config.HWUUID != "" {
-		if err := s.client.Stop(stopParams); err != nil {
-			return err
-		}
-		ui.Say(fmt.Sprintf("Modifying VM custom-variable hw.UUID to %s", config.HWUUID))
-		err := s.client.Modify(showResponse.Name, "set", "custom-variable", "hw.UUID", config.HWUUID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
-	config := state.Get("config").(*Config)
-	ui := state.Get("ui").(packer.Ui)
-
-	s.client = state.Get("client").(*client.Client)
-	sourceVMName := config.SourceVMName
-
-	onError := func(err error) multistep.StepAction {
-		return stepError(ui, state, err)
-	}
-
-	createSourceVM := false
-	installerAppFullName := "anka-packer-base"
-
-	if config.InstallerApp != "" { // If users specifies an InstallerApp and sourceVMName doesn't exist, assume they want to build a new VM template and use the macOS installer version
-		createSourceVM = true
-		ui.Say(fmt.Sprintf("Extracting version from installer app: %q", config.InstallerApp))
-		macOSVersionFromInstallerApp, err := obtainMacOSVersionFromInstallerApp(config.InstallerApp) // Grab the version details from the Info.plist inside of the Installer package
-		if err != nil {
-			return onError(err)
-		}
-		installerAppFullName = fmt.Sprintf("%s-%s", installerAppFullName, macOSVersionFromInstallerApp) // We need to set the SourceVMName since the user didn't and the logic below creates a VM using it
-	}
-
-	if sourceVMName == "" {
-		sourceVMName = installerAppFullName
-	}
-
-	// Reuse the base VM template if it matches the one from the installer
-	if sourceVMExists, err := s.client.Exists(client.ExistsParams{Name: sourceVMName}); err != nil {
-		return onError(err)
-	} else {
-		if sourceVMExists {
-			createSourceVM = false
-		}
-	}
-
-	s.vmName = sourceVMName // Used for cleanup BEFORE THE CLONE
-
-	clonedVMName := config.VMName
-	if clonedVMName == "" { // If user doesn't give a vm_name, generate one
-		clonedVMName = fmt.Sprintf("anka-packer-%s", random.AlphaNum(10))
-	}
-
-	if createSourceVM {
-		ui.Say(fmt.Sprintf("Creating a new base VM Template (%s) from installer, this will take a while", sourceVMName))
-		outputStream := make(chan string)
-		go func() {
-			for msg := range outputStream {
-				ui.Say(msg)
-			}
-		}()
-		createParams := client.CreateParams{
-			InstallerApp: config.InstallerApp,
-			Name:         sourceVMName,
-			DiskSize:     config.DiskSize,
-			CPUCount:     config.CPUCount,
-			RAMSize:      config.RAMSize,
-		}
-
-		if createParams.DiskSize == "" {
-			createParams.DiskSize = DEFAULT_DISK_SIZE
-		}
-
-		if createParams.CPUCount == "" {
-			createParams.CPUCount = DEFAULT_CPU_COUNT
-		}
-
-		if createParams.RAMSize == "" {
-			createParams.RAMSize = DEFAULT_RAM_SIZE
-		}
-
-		if resp, err := s.client.Create(createParams, outputStream); err != nil {
-			return onError(err)
-		} else {
-			ui.Say(fmt.Sprintf("VM %s was created (%s)", sourceVMName, resp.UUID))
-		}
-		close(outputStream)
-	}
-
-	show, err := s.client.Show(sourceVMName)
-	if err != nil {
-		return onError(err)
-	}
-
-	if show.IsRunning() {
-		if config.StopSourceVM {
-			ui.Say(fmt.Sprintf("Stopping VM %s", sourceVMName))
-			if err := s.client.Stop(client.StopParams{VMName: sourceVMName}); err != nil {
-				return onError(err)
-			}
-		} else {
-			ui.Say(fmt.Sprintf("Suspending VM %s", sourceVMName))
-			if err := s.client.Suspend(client.SuspendParams{VMName: sourceVMName}); err != nil {
-				return onError(err)
-			}
-		}
-	}
-
-	s.vmName = clonedVMName // Used for cleanup of clone if a failure happens
-
-	// If the user forces the build (packer build --force), delete the existing VM that would fail the build
-	exists, err := s.client.Exists(client.ExistsParams{Name: clonedVMName})
-	if exists && config.PackerForce {
-		ui.Say(fmt.Sprintf("Deleting existing virtual machine %s", clonedVMName))
-		if err = s.client.Delete(client.DeleteParams{VMName: clonedVMName}); err != nil {
-			return onError(err)
-		}
-	}
-	if err != nil {
-		return onError(err)
-	}
-
-	ui.Say(fmt.Sprintf("Cloning source VM %s into a new virtual machine: %s", sourceVMName, clonedVMName))
-	if err = s.client.Clone(client.CloneParams{VMName: clonedVMName, SourceUUID: show.UUID}); err != nil {
-		return onError(err)
-	}
-
-	showResponse, err := s.client.Show(clonedVMName)
-	if err != nil {
-		return onError(err)
-	}
-
-	if err := s.modifyVMResources(showResponse, config, ui); err != nil {
-		return onError(err)
-	}
-
-	describeResponse, err := s.client.Describe(clonedVMName)
-	if err != nil {
-		return onError(err)
-	}
-
-	// Expose the VM UUID as the "ID" contextual build variable
-	state.Put("instance_id", describeResponse.UUID)
-
-	if err := s.modifyVMProperties(describeResponse, showResponse, config, ui); err != nil {
-		return onError(err)
-	}
-
-	state.Put("vm_name", clonedVMName)
-
-	return multistep.ActionContinue
-}
-
-func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
-	var err error
-
-	config := state.Get("config").(*Config)
-	ui := state.Get("ui").(packer.Ui)
-
-	log.Println("Cleaning up create VM step")
-	if s.vmName == "" {
-		return
-	}
-
-	_, halted := state.GetOk(multistep.StateHalted)
-	_, canceled := state.GetOk(multistep.StateCancelled)
-	errorObj := state.Get("error")
-	switch errorObj.(type) {
-	case *common.VMAlreadyExistsError:
-		return
-	case *common.VMNotFoundException:
-		return
-	default:
-		if halted || canceled {
-			ui.Say(fmt.Sprintf("Deleting VM %s", s.vmName))
-			err = s.client.Delete(client.DeleteParams{VMName: s.vmName})
-			if err != nil {
-				ui.Error(fmt.Sprint(err))
-			}
-			return
-		}
-	}
-
-	if config.StopBuildVM {
-		err = s.client.Stop(client.StopParams{
-			VMName: s.vmName,
-		})
-	} else {
-		err = s.client.Suspend(client.SuspendParams{
-			VMName: s.vmName,
-		})
-	}
-
-	if err != nil {
-		ui.Error(fmt.Sprint(err))
-		_ = s.client.Delete(client.DeleteParams{VMName: s.vmName})
-		panic(err)
-	}
 }
 
 func obtainMacOSVersionFromInstallerApp(path string) (string, error) {
