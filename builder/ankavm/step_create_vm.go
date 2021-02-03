@@ -277,6 +277,9 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 		return onError(err)
 	}
 
+	// Expose the VM UUID as the "ID" contextual build variable
+	state.Put("instance_id", describeResponse.UUID)
+
 	if err := s.modifyVMProperties(describeResponse, showResponse, config, ui); err != nil {
 		return onError(err)
 	}
