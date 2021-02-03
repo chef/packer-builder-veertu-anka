@@ -15,10 +15,18 @@ const (
 	AnkaVMNotFoundExceptionErrorCode = 3
 )
 
-// A quick helper that can determine whether or not a VM exists locally
-func (c *Client) Exists(vmName string) (bool, error) {
-	_, err := c.Show(vmName)
+// A helper that can return a bool for whether or not a VM exists locally
+type ExistsParams struct {
+	Name string
+	Tag  string
+}
+
+func (c *Client) Exists(params ExistsParams) (bool, error) {
+	resp, err := c.Show(params.Name)
 	if err == nil {
+		if params.Tag != "" && resp.Tag != params.Tag {
+			return false, nil
+		}
 		return true, nil
 	}
 	switch err.(type) {

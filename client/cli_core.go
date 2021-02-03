@@ -212,13 +212,15 @@ func (c *Client) Run(params RunParams) (error, int) {
 
 // https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#show
 type ShowResponse struct {
-	UUID      string `json:"uuid"`
-	Name      string `json:"name"`
-	CPUCores  int    `json:"cpu_cores"`
-	RAM       string `json:"ram"`
-	ImageID   string `json:"image_id"`
-	Status    string `json:"status"`
-	HardDrive uint64 `json:"hard_drive"`
+	UUID          string `json:"uuid"`
+	Name          string `json:"name"`
+	Tag           string `json:"version"`
+	CPUCores      int    `json:"cpu_cores"`
+	RAM           string `json:"ram"`
+	ImageID       string `json:"image_id"`
+	Status        string `json:"status"`
+	HardDrive     uint64 `json:"hard_drive"`
+	AddonsVersion string `json:"addons_version"`
 }
 
 func (sr ShowResponse) IsRunning() bool {

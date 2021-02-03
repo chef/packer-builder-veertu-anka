@@ -174,7 +174,7 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 	}
 
 	// Reuse the base VM template if it matches the one from the installer
-	if sourceVMExists, err := s.client.Exists(sourceVMName); err != nil {
+	if sourceVMExists, err := s.client.Exists(client.ExistsParams{Name: sourceVMName}); err != nil {
 		return onError(err)
 	} else {
 		if sourceVMExists {
@@ -247,7 +247,7 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 	s.vmName = clonedVMName // Used for cleanup of clone if a failure happens
 
 	// If the user forces the build (packer build --force), delete the existing VM that would fail the build
-	exists, err := s.client.Exists(clonedVMName)
+	exists, err := s.client.Exists(client.ExistsParams{Name: clonedVMName})
 	if exists && config.PackerForce {
 		ui.Say(fmt.Sprintf("Deleting existing virtual machine %s", clonedVMName))
 		if err = s.client.Delete(client.DeleteParams{VMName: clonedVMName}); err != nil {
