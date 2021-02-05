@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/hashicorp/packer/packer-plugin-sdk/net"
+	"github.com/hashicorp/packer-plugin-sdk/net"
 )
 
 func registryRESTRequest(method string, url string, body io.Reader) (machineReadableOutput, error) {
