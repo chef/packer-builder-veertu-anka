@@ -20,6 +20,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	server.RegisterBuilder(new(anka.Builder))
+	if err = server.RegisterBuilder(new(anka.Builder)); err != nil {
+		panic(err)
+	}
 	server.Serve()
 }

@@ -3,7 +3,6 @@ package anka
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/packer-plugin-sdk/common"
@@ -40,7 +39,7 @@ type Config struct {
 	DisableHtt bool   `mapstructure:"disable_htt"`
 	UseAnkaCP  bool   `mapstructure:"use_anka_cp"`
 
-	ctx interpolate.Context
+	ctx interpolate.Context //nolint:structcheck
 }
 
 func NewConfig(raws ...interface{}) (*Config, error) {
@@ -74,7 +73,7 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 				errs = packer.MultiErrorAppend(errs, errors.New("guest port is required"))
 			}
 			if rule.PortForwardingRuleName == "" {
-				c.PortForwardingRules[index].PortForwardingRuleName = fmt.Sprintf("%s", randSeq(10))
+				c.PortForwardingRules[index].PortForwardingRuleName = randSeq(10)
 			}
 		}
 	}

@@ -4,7 +4,10 @@ FLAGS := -X main.commit=$(LATEST-GIT-SHA) -X main.version=$(VERSION)
 BIN := packer-plugin-veertu-anka
 SOURCES := $(shell find . -name '*.go')
 
-.PHONY: test packer-test clean clean-images
+.PHONY: lint test packer-test clean clean-images
+
+lint:
+	golangci-lint run --fast
 
 test:
 	go test -v builder/anka/*.go

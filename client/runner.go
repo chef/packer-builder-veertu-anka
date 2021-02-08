@@ -76,20 +76,19 @@ func (r *Runner) Start() error {
 	if err != nil {
 		return err
 	}
-	err = r.cmd.Start()
-	if err != nil {
+	defer stdin.Close()
+	if err = r.cmd.Start(); err != nil {
 		return err
 	}
 	cmdString := strings.Join(r.params.Command, " ")
 	log.Print("Executing on sh: ", cmdString)
-	stdin.Write([]byte(cmdString))
-	stdin.Close()
+	_, err = stdin.Write([]byte(cmdString))
 	return err
 }
 
 func (r *Runner) Wait() (error, int) {
 	err := r.cmd.Wait()
-	log.Printf("Command finished in %s with %v", time.Now().Sub(r.started), err)
+	log.Printf("Command finished in %s with %v", time.Since(r.started), err)
 	return err, getExitCode(err)
 }
 
