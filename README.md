@@ -1,4 +1,4 @@
-# Packer Builder for Anka
+# Packer Plugin for Anka
 
 This is a [Packer Builder] for building images that work with [Veertu Anka], a macOS virtualization tool.
 
