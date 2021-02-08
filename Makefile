@@ -12,10 +12,12 @@ lint:
 test:
 	go test -v builder/anka/*.go
 
-build: $(BIN)
-$(BIN):
+hcl2spec:
 	GOOS=darwin GOBIN=$(shell pwd) go install github.com/hashicorp/packer/cmd/mapstructure-to-hcl2
-	GOOS=darwin PATH="$(shell pwd):${PATH}" go generate builder/anka/config.go
+	GOOS=darwin PATH="$(shell pwd):${PATH}" go generate builder/ankavm/config.go
+
+build: $(BIN)
+$(BIN): hcl2spec
 	GOOS=darwin go build -ldflags="$(FLAGS)" -o $(BIN)
 
 install: $(BIN)
