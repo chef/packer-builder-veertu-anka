@@ -18,19 +18,18 @@ const (
 )
 
 type CLI interface {
-	runCommand(args ...string) (machineReadableOutput, error)
-	runCommandStreamer(outputStreamer chan string, args ...string) (machineReadableOutput, error)
+	RunCommand(args ...string) (MachineReadableOutput, error)
+	RunCommandStreamer(outputStreamer chan string, args ...string) (MachineReadableOutput, error)
 }
 
 type AnkaCLI struct {
 }
 
-func (cli *AnkaCLI) runCommand(args ...string) (machineReadableOutput, error) {
-	return cli.runCommandStreamer(nil, args...)
+func (cli *AnkaCLI) RunCommand(args ...string) (MachineReadableOutput, error) {
+	return cli.RunCommandStreamer(nil, args...)
 }
 
-func (cli *AnkaCLI) runCommandStreamer(outputStreamer chan string, args ...string) (machineReadableOutput, error) {
-
+func (cli *AnkaCLI) RunCommandStreamer(outputStreamer chan string, args ...string) (MachineReadableOutput, error) {
 	if outputStreamer != nil {
 		args = append([]string{"--debug"}, args...)
 	}
@@ -42,7 +41,7 @@ func (cli *AnkaCLI) runCommandStreamer(outputStreamer chan string, args ...strin
 	outPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Println("Err on stdoutpipe")
-		return machineReadableOutput{}, err
+		return MachineReadableOutput{}, err
 	}
 
 	if outputStreamer == nil {
@@ -51,7 +50,7 @@ func (cli *AnkaCLI) runCommandStreamer(outputStreamer chan string, args ...strin
 
 	if err = cmd.Start(); err != nil {
 		log.Printf("Failed with an error of %v", err)
-		return machineReadableOutput{}, err
+		return MachineReadableOutput{}, err
 	}
 	outScanner := bufio.NewScanner(outPipe)
 	outScanner.Split(customSplit)
@@ -67,10 +66,10 @@ func (cli *AnkaCLI) runCommandStreamer(outputStreamer chan string, args ...strin
 
 	scannerErr := outScanner.Err() // Expecting error on final output
 	if scannerErr == nil {
-		return machineReadableOutput{}, errors.New("missing machine readable output")
+		return MachineReadableOutput{}, errors.New("missing machine readable output")
 	}
 	if _, ok := scannerErr.(customErr); !ok {
-		return machineReadableOutput{}, err
+		return MachineReadableOutput{}, err
 	}
 
 	finalOutput := scannerErr.Error()
@@ -78,28 +77,28 @@ func (cli *AnkaCLI) runCommandStreamer(outputStreamer chan string, args ...strin
 
 	parsed, err := parseOutput([]byte(finalOutput))
 	if err != nil {
-		return machineReadableOutput{}, err
+		return MachineReadableOutput{}, err
 	}
 	if err := cmd.Wait(); err != nil {
-		return machineReadableOutput{}, err
+		return MachineReadableOutput{}, err
 	}
 
 	if err = parsed.GetError(); err != nil {
-		return machineReadableOutput{}, err
+		return MachineReadableOutput{}, err
 	}
 
 	return parsed, nil
 }
 
-type machineReadableError struct {
-	*machineReadableOutput
+type MachineReadableError struct {
+	*MachineReadableOutput
 }
 
-func (ae machineReadableError) Error() string {
+func (ae MachineReadableError) Error() string {
 	return ae.Message
 }
 
-type machineReadableOutput struct {
+type MachineReadableOutput struct {
 	Status        string `json:"status"`
 	Body          json.RawMessage
 	Message       string `json:"message"`
@@ -107,15 +106,15 @@ type machineReadableOutput struct {
 	ExceptionType string `json:"exception_type"`
 }
 
-func (parsed *machineReadableOutput) GetError() error {
+func (parsed *MachineReadableOutput) GetError() error {
 	if parsed.Status != statusOK {
-		return machineReadableError{parsed}
+		return MachineReadableError{parsed}
 	}
 	return nil
 }
 
-func parseOutput(output []byte) (machineReadableOutput, error) {
-	var parsed machineReadableOutput
+func parseOutput(output []byte) (MachineReadableOutput, error) {
+	var parsed MachineReadableOutput
 	if err := json.Unmarshal(output, &parsed); err != nil {
 		return parsed, err
 	}
