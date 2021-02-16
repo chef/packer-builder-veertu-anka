@@ -1,154 +1,137 @@
 package client
 
-import (
-	"bufio"
-	"bytes"
-	"encoding/json"
-	"errors"
-	"log"
-	"os/exec"
-	"strings"
-)
+// type CLI interface {
+// 	RunCommand(args ...string) (MachineReadableOutput, error)
+// 	RunCommandStreamer(outputStreamer chan string, args ...string) (MachineReadableOutput, error)
+// }
 
-const (
-	statusOK                         = "OK"
-	statusERROR                      = "ERROR" //nolint:deadcode,varcheck
-	AnkaNameAlreadyExistsErrorCode   = 18
-	AnkaVMNotFoundExceptionErrorCode = 3
-)
+// type AnkaCLI struct {
+// }
 
-type CLI interface {
-	RunCommand(args ...string) (MachineReadableOutput, error)
-	RunCommandStreamer(outputStreamer chan string, args ...string) (MachineReadableOutput, error)
-}
+// func (cli *AnkaCLI) RunCommand(args ...string) (MachineReadableOutput, error) {
+// 	return cli.RunCommandStreamer(nil, args...)
+// }
 
-type AnkaCLI struct {
-}
+// func (cli *AnkaCLI) RunCommandStreamer(outputStreamer chan string, args ...string) (MachineReadableOutput, error) {
+// 	if outputStreamer != nil {
+// 		args = append([]string{"--debug"}, args...)
+// 	}
 
-func (cli *AnkaCLI) RunCommand(args ...string) (MachineReadableOutput, error) {
-	return cli.RunCommandStreamer(nil, args...)
-}
+// 	cmdArgs := append([]string{"--machine-readable"}, args...)
+// 	log.Printf("Executing anka %s", strings.Join(cmdArgs, " "))
+// 	cmd := exec.Command("anka", cmdArgs...)
 
-func (cli *AnkaCLI) RunCommandStreamer(outputStreamer chan string, args ...string) (MachineReadableOutput, error) {
-	if outputStreamer != nil {
-		args = append([]string{"--debug"}, args...)
-	}
+// 	outPipe, err := cmd.StdoutPipe()
+// 	if err != nil {
+// 		log.Println("Err on stdoutpipe")
+// 		return MachineReadableOutput{}, err
+// 	}
 
-	cmdArgs := append([]string{"--machine-readable"}, args...)
-	log.Printf("Executing anka %s", strings.Join(cmdArgs, " "))
-	cmd := exec.Command("anka", cmdArgs...)
+// 	if outputStreamer == nil {
+// 		cmd.Stderr = cmd.Stdout
+// 	}
 
-	outPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Println("Err on stdoutpipe")
-		return MachineReadableOutput{}, err
-	}
+// 	if err = cmd.Start(); err != nil {
+// 		log.Printf("Failed with an error of %v", err)
+// 		return MachineReadableOutput{}, err
+// 	}
+// 	outScanner := bufio.NewScanner(outPipe)
+// 	outScanner.Split(customSplit)
 
-	if outputStreamer == nil {
-		cmd.Stderr = cmd.Stdout
-	}
+// 	for outScanner.Scan() {
+// 		out := outScanner.Text()
+// 		log.Printf("%s", out)
 
-	if err = cmd.Start(); err != nil {
-		log.Printf("Failed with an error of %v", err)
-		return MachineReadableOutput{}, err
-	}
-	outScanner := bufio.NewScanner(outPipe)
-	outScanner.Split(customSplit)
+// 		if outputStreamer != nil {
+// 			outputStreamer <- out
+// 		}
+// 	}
 
-	for outScanner.Scan() {
-		out := outScanner.Text()
-		log.Printf("%s", out)
+// 	scannerErr := outScanner.Err() // Expecting error on final output
+// 	if scannerErr == nil {
+// 		return MachineReadableOutput{}, errors.New("missing machine readable output")
+// 	}
+// 	if _, ok := scannerErr.(customErr); !ok {
+// 		return MachineReadableOutput{}, err
+// 	}
 
-		if outputStreamer != nil {
-			outputStreamer <- out
-		}
-	}
+// 	finalOutput := scannerErr.Error()
+// 	log.Printf("%s", finalOutput)
 
-	scannerErr := outScanner.Err() // Expecting error on final output
-	if scannerErr == nil {
-		return MachineReadableOutput{}, errors.New("missing machine readable output")
-	}
-	if _, ok := scannerErr.(customErr); !ok {
-		return MachineReadableOutput{}, err
-	}
+// 	parsed, err := parseOutput([]byte(finalOutput))
+// 	if err != nil {
+// 		return MachineReadableOutput{}, err
+// 	}
+// 	if err := cmd.Wait(); err != nil {
+// 		return MachineReadableOutput{}, err
+// 	}
 
-	finalOutput := scannerErr.Error()
-	log.Printf("%s", finalOutput)
+// 	if err = parsed.GetError(); err != nil {
+// 		return MachineReadableOutput{}, err
+// 	}
 
-	parsed, err := parseOutput([]byte(finalOutput))
-	if err != nil {
-		return MachineReadableOutput{}, err
-	}
-	if err := cmd.Wait(); err != nil {
-		return MachineReadableOutput{}, err
-	}
+// 	return parsed, nil
+// }
 
-	if err = parsed.GetError(); err != nil {
-		return MachineReadableOutput{}, err
-	}
+// type MachineReadableError struct {
+// 	*MachineReadableOutput
+// }
 
-	return parsed, nil
-}
+// func (ae MachineReadableError) Error() string {
+// 	return ae.Message
+// }
 
-type MachineReadableError struct {
-	*MachineReadableOutput
-}
+// type MachineReadableOutput struct {
+// 	Status        string `json:"status"`
+// 	Body          json.RawMessage
+// 	Message       string `json:"message"`
+// 	Code          int    `json:"code"`
+// 	ExceptionType string `json:"exception_type"`
+// }
 
-func (ae MachineReadableError) Error() string {
-	return ae.Message
-}
+// func (parsed *MachineReadableOutput) GetError() error {
+// 	if parsed.Status != statusOK {
+// 		return MachineReadableError{parsed}
+// 	}
+// 	return nil
+// }
 
-type MachineReadableOutput struct {
-	Status        string `json:"status"`
-	Body          json.RawMessage
-	Message       string `json:"message"`
-	Code          int    `json:"code"`
-	ExceptionType string `json:"exception_type"`
-}
+// func parseOutput(output []byte) (MachineReadableOutput, error) {
+// 	var parsed MachineReadableOutput
+// 	if err := json.Unmarshal(output, &parsed); err != nil {
+// 		return parsed, err
+// 	}
 
-func (parsed *MachineReadableOutput) GetError() error {
-	if parsed.Status != statusOK {
-		return MachineReadableError{parsed}
-	}
-	return nil
-}
+// 	return parsed, nil
+// }
 
-func parseOutput(output []byte) (MachineReadableOutput, error) {
-	var parsed MachineReadableOutput
-	if err := json.Unmarshal(output, &parsed); err != nil {
-		return parsed, err
-	}
+// func dropCR(data []byte) []byte {
+// 	if len(data) > 0 && data[len(data)-1] == '\r' {
+// 		return data[0 : len(data)-1]
+// 	}
+// 	return data
+// }
 
-	return parsed, nil
-}
+// func customSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
+// 	// A tiny spin off on ScanLines
 
-func dropCR(data []byte) []byte {
-	if len(data) > 0 && data[len(data)-1] == '\r' {
-		return data[0 : len(data)-1]
-	}
-	return data
-}
+// 	if atEOF && len(data) == 0 {
+// 		return 0, nil, nil
+// 	}
+// 	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+// 		return i + 1, dropCR(data[0:i]), nil
+// 	}
+// 	if atEOF { // Machine readable data is parsed here
+// 		out := dropCR(data)
+// 		return len(data), out, customErr{data: out}
+// 	}
+// 	return 0, nil, nil
+// }
 
-func customSplit(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	// A tiny spin off on ScanLines
+// type customErr struct {
+// 	data []byte
+// }
 
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-	if i := bytes.IndexByte(data, '\n'); i >= 0 {
-		return i + 1, dropCR(data[0:i]), nil
-	}
-	if atEOF { // Machine readable data is parsed here
-		out := dropCR(data)
-		return len(data), out, customErr{data: out}
-	}
-	return 0, nil, nil
-}
-
-type customErr struct {
-	data []byte
-}
-
-func (e customErr) Error() string {
-	return string(e.data)
-}
+// func (e customErr) Error() string {
+// 	return string(e.data)
+// }

@@ -2,12 +2,10 @@ package anka
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	"github.com/hashicorp/packer-plugin-sdk/packer"
-	c "github.com/veertuinc/packer-builder-veertu-anka/client"
 	"github.com/veertuinc/packer-builder-veertu-anka/testutils"
 	"gotest.tools/assert"
 )
@@ -18,15 +16,11 @@ func TestRun(t *testing.T) {
 	ctx := context.Background()
 	state := new(multistep.BasicStateBag)
 
-	expectedResults := make(map[string]c.MachineReadableOutput)
 	expectedErrors := make(map[string]error)
 
-	cli := &testutils.FakeCLI{
-		Results: expectedResults,
-		Errors:  expectedErrors,
+	client := &testutils.TestClient{
+		Errors: expectedErrors,
 	}
-
-	client := &c.Client{Cli: cli}
 
 	state.Put("client", client)
 	state.Put("ui", ui)
@@ -57,17 +51,6 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("test enable htt", func(t *testing.T) {
-		expectedResults["describe foo"] = c.MachineReadableOutput{
-			Body: json.RawMessage(`{}`),
-		}
-		expectedResults["show foo"] = c.MachineReadableOutput{
-			Body: json.RawMessage(`{}`),
-		}
-		expectedResults["stop --force foo"] = c.MachineReadableOutput{}
-		expectedResults["modify foo set cpu --htt"] = c.MachineReadableOutput{
-			Status: "OK",
-		}
-
 		expectedErrors["describe foo"] = nil
 		expectedErrors["show foo"] = nil
 		expectedErrors["stop --force foo"] = nil
@@ -82,10 +65,55 @@ func TestRun(t *testing.T) {
 
 		stepAction := step.Run(ctx, state)
 
-		assert.Equal(t, "describe foo", cli.Commands[0])
-		assert.Equal(t, "show foo", cli.Commands[1])
-		assert.Equal(t, "stop --force foo", cli.Commands[2])
-		assert.Equal(t, "modify foo set cpu --htt", cli.Commands[3])
+		assert.Equal(t, "describe foo", client.Commands[0])
+		assert.Equal(t, "show foo", client.Commands[1])
+		assert.Equal(t, "stop --force foo", client.Commands[2])
+		assert.Equal(t, "modify foo set cpu --htt", client.Commands[3])
+
+		assert.Equal(t, stepAction, multistep.ActionContinue)
+	})
+
+	t.Run("test disable htt with 0 threads", func(t *testing.T) {
+		expectedErrors["describe foo"] = nil
+		expectedErrors["show foo"] = nil
+		expectedErrors["stop --force foo"] = nil
+		expectedErrors["modify foo set cpu --no-htt"] = nil
+
+		config := &Config{
+			EnableHtt:  false,
+			DisableHtt: true,
+		}
+
+		state.Put("config", config)
+
+		stepAction := step.Run(ctx, state)
+
+		assert.Equal(t, "describe foo", client.Commands[0])
+
+		assert.Equal(t, stepAction, multistep.ActionContinue)
+	})
+
+	t.Run("test disable htt with > 0 threads", func(t *testing.T) {
+		expectedErrors["describe foo"] = nil
+
+		expectedErrors["show foo"] = nil
+		expectedErrors["stop --force foo"] = nil
+		expectedErrors["modify foo set cpu --no-htt"] = nil
+
+		config := &Config{
+			EnableHtt:  false,
+			DisableHtt: true,
+		}
+
+		state.Put("config", config)
+
+		stepAction := step.Run(ctx, state)
+
+		assert.Equal(t, "describe foo", client.Commands[0])
+		// need to produce an output so that we can make sure we are analyzing the MachineReadableOutput
+		// assert.Equal(t, "show foo", client.Commands[1])
+		// assert.Equal(t, "stop --force foo", client.Commands[2])
+		// assert.Equal(t, "modify foo set cpu --no-htt", client.Commands[3])
 
 		assert.Equal(t, stepAction, multistep.ActionContinue)
 	})
