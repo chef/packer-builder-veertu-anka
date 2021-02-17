@@ -2,9 +2,7 @@ package testutils
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
-	"os/exec"
 	"strings"
 
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
@@ -13,19 +11,27 @@ import (
 
 type TestClient struct {
 	Commands []string
+	Results  map[string]client.MachineReadableOutput
 	Errors   map[string]error
 }
 
 func (c *TestClient) Version() (client.VersionResponse, error) {
 	var response client.VersionResponse
 
-	out, err := exec.Command("anka", "--machine-readable", "version").Output()
+	args := []string{"anka", "--machine-readable", "version"}
+	fullCmd := strings.Join(args, " ")
+
+	output, err := c.fakeRunCommand(args...)
+	if err != nil {
+		return client.VersionResponse{}, err
+	}
+
+	err = json.Unmarshal(output.Body, &response)
 	if err != nil {
 		return response, err
 	}
 
-	err = json.Unmarshal([]byte(out), &response)
-	return response, err
+	return response, c.Errors[fullCmd]
 }
 
 func (c *TestClient) Suspend(params client.SuspendParams) error {
@@ -65,19 +71,36 @@ func (c *TestClient) Create(params client.CreateParams, outputStreamer chan stri
 	}
 
 	fullCmd := strings.Join(args, " ")
-	c.Commands = append(c.Commands, fullCmd)
+
+	output, err := c.fakeRunCommand(args...)
+	if err != nil {
+		return client.CreateResponse{}, err
+	}
+
+	err = json.Unmarshal(output.Body, &response)
+	if err != nil {
+		return response, err
+	}
+
 	return response, c.Errors[fullCmd]
 }
 
 func (c *TestClient) Describe(vmName string) (client.DescribeResponse, error) {
 	var response client.DescribeResponse
-	// this is where we may need to define how runCommand and runAnkaCommand should be executed
-	// or we could add back the client response and set checks on the output there
 
 	args := []string{"describe", vmName}
 	fullCmd := strings.Join(args, " ")
-	fmt.Println(fullCmd)
-	c.Commands = append(c.Commands, fullCmd)
+
+	output, err := c.fakeRunCommand(args...)
+	if err != nil {
+		return client.DescribeResponse{}, err
+	}
+
+	err = json.Unmarshal(output.Body, &response)
+	if err != nil {
+		return response, err
+	}
+
 	return response, c.Errors[fullCmd]
 }
 
@@ -86,7 +109,17 @@ func (c *TestClient) Show(vmName string) (client.ShowResponse, error) {
 
 	args := []string{"show", vmName}
 	fullCmd := strings.Join(args, " ")
-	c.Commands = append(c.Commands, fullCmd)
+
+	output, err := c.fakeRunCommand(args...)
+	if err != nil {
+		return client.ShowResponse{}, err
+	}
+
+	err = json.Unmarshal(output.Body, &response)
+	if err != nil {
+		return response, err
+	}
+
 	return response, c.Errors[fullCmd]
 }
 
@@ -144,4 +177,10 @@ func (c *TestClient) Modify(vmName string, command string, property string, flag
 	fullCmd := strings.Join(args, " ")
 	c.Commands = append(c.Commands, fullCmd)
 	return c.Errors[fullCmd]
+}
+
+func (c *TestClient) fakeRunCommand(args ...string) (client.MachineReadableOutput, error) {
+	fullCmd := strings.Join(args, " ")
+	c.Commands = append(c.Commands, fullCmd)
+	return c.Results[fullCmd], c.Errors[fullCmd]
 }
