@@ -390,9 +390,7 @@ func runCommandStreamer(outputStreamer chan string, args ...string) (MachineRead
 	if err != nil {
 		return MachineReadableOutput{}, err
 	}
-	if err := cmd.Wait(); err != nil {
-		return MachineReadableOutput{}, err
-	}
+	cmd.Wait()
 
 	if err = parsed.GetError(); err != nil {
 		return MachineReadableOutput{}, err
