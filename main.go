@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/packer-plugin-sdk/plugin"
 	"github.com/veertuinc/packer-builder-veertu-anka/builder/anka"
+	"github.com/veertuinc/packer-builder-veertu-anka/post-processor/ankaregistry"
 )
 
 var version = "SNAPSHOT"
@@ -21,6 +22,7 @@ func main() {
 
 	pps := plugin.NewSet()
 	pps.RegisterBuilder(plugin.DEFAULT_NAME, new(anka.Builder))
+	pps.RegisterPostProcessor("registry-push", new(ankaregistry.PostProcessor))
 	if err := pps.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
