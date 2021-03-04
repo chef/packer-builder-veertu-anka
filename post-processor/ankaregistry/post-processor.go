@@ -38,6 +38,7 @@ type Config struct {
 
 type PostProcessor struct {
 	config Config
+	client client.Client
 }
 
 func (p *PostProcessor) ConfigSpec() hcldec.ObjectSpec { return p.config.FlatMapstructure().HCL2Spec() }
@@ -59,6 +60,8 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 		return fmt.Errorf("You must specify a valid tag for your Veertu Anka VM (e.g. 'latest')")
 	}
 
+	p.client = &client.AnkaClient{}
+
 	log.Printf("%+v\n", p.config)
 
 	return nil
@@ -71,8 +74,6 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 			artifact.BuilderId())
 		return nil, false, false, err
 	}
-
-	ankaClient := &client.AnkaClient{}
 
 	registryParams := client.RegistryParams{
 		RegistryName: p.config.RegistryName,
@@ -105,7 +106,7 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 	if p.config.PackerForce {
 		var id string
 
-		templates, err := ankaClient.RegistryList(registryParams)
+		templates, err := p.client.RegistryList(registryParams)
 		if err != nil {
 			return nil, false, false, err
 		}
@@ -119,7 +120,7 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 		}
 
 		if id != "" {
-			if err := ankaClient.RegistryRevert(registryParams.RegistryURL, id); err != nil {
+			if err := p.client.RegistryRevert(registryParams.RegistryURL, id); err != nil {
 				return nil, false, false, err
 			}
 			ui.Say(fmt.Sprintf("Reverted latest tag for template '%s' on registry", id))
@@ -127,7 +128,7 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 	}
 
 	ui.Say(fmt.Sprintf("Pushing template to Anka Registry as %s with tag %s", remoteVMName, remoteTag))
-	pushErr := ankaClient.RegistryPush(registryParams, pushParams)
+	pushErr := p.client.RegistryPush(registryParams, pushParams)
 
 	return artifact, true, false, pushErr
 }
