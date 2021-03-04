@@ -21,7 +21,7 @@ func main() {
 	}
 
 	pps := plugin.NewSet()
-	pps.RegisterBuilder(plugin.DEFAULT_NAME, new(anka.Builder))
+	pps.RegisterBuilder("vm", new(anka.Builder))
 	pps.RegisterPostProcessor("registry-push", new(ankaregistry.PostProcessor))
 	if err := pps.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
