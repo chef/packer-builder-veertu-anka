@@ -5,7 +5,6 @@ package ankaregistry
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/packer-plugin-sdk/common"
@@ -61,8 +60,6 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 	}
 
 	p.client = &client.AnkaClient{}
-
-	log.Printf("%+v\n", p.config)
 
 	return nil
 }
