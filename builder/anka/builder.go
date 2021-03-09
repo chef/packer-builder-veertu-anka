@@ -11,10 +11,9 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/multistep/commonsteps"
 	"github.com/hashicorp/packer-plugin-sdk/packer"
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
-	// "golang.org/x/mod/semver"
 )
 
-// The unique ID for this builder.
+// BuilderId is the unique ID for this builder.
 const BuilderId = "packer.veertu-anka"
 
 // Builder represents a Packer Builder.
@@ -43,9 +42,27 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 	}
 	log.Printf("[DEBUG] Anka version: %s version %s (build %s)", version.Body.Product, version.Body.Version, version.Body.Build)
 
+	// Setup the state bag and initial state for the steps
+	state := new(multistep.BasicStateBag)
+	state.Put("config", b.config)
+	state.Put("hook", hook)
+	state.Put("ui", ui)
+	state.Put("client", client)
+
 	steps := []multistep.Step{
 		&StepTempDir{},
-		&StepCreateVM{},
+	}
+
+	switch b.config.PackerConfig.PackerBuilderType {
+	case "veertu-anka-vm-create":
+		steps = append(steps, &StepCreateVM{})
+	case "veertu-anka-vm-clone":
+		steps = append(steps, &StepCloneVM{})
+	default:
+		return nil, errors.New("wrong type for builder. must be of type clone or create")
+	}
+
+	steps = append(steps,
 		&StepSetHyperThreading{},
 		&StepStartVM{},
 		&communicator.StepConnect{
@@ -58,26 +75,21 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 			},
 		},
 		&commonsteps.StepProvision{},
-	}
-
-	// Setup the state bag and initial state for the steps
-	state := new(multistep.BasicStateBag)
-	state.Put("config", b.config)
-	state.Put("hook", hook)
-	state.Put("ui", ui)
-	state.Put("client", client)
+	)
 
 	// Run!
 	b.runner = commonsteps.NewRunner(steps, b.config.PackerConfig, ui)
 	b.runner.Run(ctx, state)
 
 	// If there was an error, return that
-	if rawErr, ok := state.GetOk("error"); ok {
+	rawErr, ok := state.GetOk("error")
+	if ok {
 		return nil, rawErr.(error)
 	}
 
 	// If it was cancelled, then just return
-	if _, ok := state.GetOk(multistep.StateCancelled); ok {
+	_, ok = state.GetOk(multistep.StateCancelled)
+	if ok {
 		return nil, nil
 	}
 
@@ -86,6 +98,7 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 	if err != nil {
 		return nil, err
 	}
+
 	// No errors, must've worked
 	return &Artifact{
 		vmId:   descr.UUID,
@@ -93,6 +106,7 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 	}, nil
 }
 
+// ConfigSpec returns an HCL spec of the config
 func (b *Builder) ConfigSpec() hcldec.ObjectSpec {
 	return b.config.FlatMapstructure().HCL2Spec()
 }

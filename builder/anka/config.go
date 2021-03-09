@@ -19,6 +19,9 @@ type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 	Comm                communicator.Config `mapstructure:",squash"`
 
+	AnkaUser     string `mapstructure:"anka_user"`
+	AnkaPassword string `mapstructure:"anka_password"`
+
 	InstallerApp string `mapstructure:"installer_app"`
 	SourceVMName string `mapstructure:"source_vm_name"`
 
@@ -39,6 +42,8 @@ type Config struct {
 	DisableHtt bool   `mapstructure:"disable_htt"`
 	UseAnkaCP  bool   `mapstructure:"use_anka_cp"`
 
+	StopVM bool `mapstructure:"stop_vm"`
+
 	ctx interpolate.Context //nolint:structcheck
 }
 
@@ -54,16 +59,31 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 		return nil, err
 	}
 
+	if c.BootDelay == "" {
+		c.BootDelay = DEFAULT_BOOT_DELAY
+	}
+
 	// Accumulate any errors
 	var errs *packer.MultiError
 
-	// Default to the normal anku communicator type
 	if c.Comm.Type == "" {
 		c.Comm.Type = "anka"
 	}
 
 	if c.InstallerApp == "" && c.SourceVMName == "" {
 		errs = packer.MultiErrorAppend(errs, errors.New("installer_app or source_vm_name must be specified"))
+	}
+
+	if c.InstallerApp != "" && c.SourceVMName != "" {
+		errs = packer.MultiErrorAppend(errs, errors.New("cannot specify both an installer_app and source_vm_name"))
+	}
+
+	if c.VMName == "" {
+		errs = packer.MultiErrorAppend(errs, errors.New("please specify a name for your vm"))
+	}
+
+	if c.SourceVMName != "" && strings.ContainsAny(c.SourceVMName, " \n") {
+		errs = packer.MultiErrorAppend(errs, errors.New("source_vm_name name contains spaces"))
 	}
 
 	// Handle Port Forwarding Rules
@@ -76,14 +96,6 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 				c.PortForwardingRules[index].PortForwardingRuleName = randSeq(10)
 			}
 		}
-	}
-
-	if strings.ContainsAny(c.SourceVMName, " \n") {
-		errs = packer.MultiErrorAppend(errs, errors.New("source_vm_name name contains spaces"))
-	}
-
-	if c.BootDelay == "" {
-		c.BootDelay = DEFAULT_BOOT_DELAY
 	}
 
 	if errs != nil && len(errs.Errors) > 0 {

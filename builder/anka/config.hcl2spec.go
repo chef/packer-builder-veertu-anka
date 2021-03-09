@@ -67,6 +67,8 @@ type FlatConfig struct {
 	WinRMUseSSL               *bool             `mapstructure:"winrm_use_ssl" cty:"winrm_use_ssl" hcl:"winrm_use_ssl"`
 	WinRMInsecure             *bool             `mapstructure:"winrm_insecure" cty:"winrm_insecure" hcl:"winrm_insecure"`
 	WinRMUseNTLM              *bool             `mapstructure:"winrm_use_ntlm" cty:"winrm_use_ntlm" hcl:"winrm_use_ntlm"`
+	AnkaUser                  *string           `mapstructure:"anka_user" cty:"anka_user" hcl:"anka_user"`
+	AnkaPassword              *string           `mapstructure:"anka_password" cty:"anka_password" hcl:"anka_password"`
 	InstallerApp              *string           `mapstructure:"installer_app" cty:"installer_app" hcl:"installer_app"`
 	SourceVMName              *string           `mapstructure:"source_vm_name" cty:"source_vm_name" hcl:"source_vm_name"`
 	VMName                    *string           `mapstructure:"vm_name" cty:"vm_name" hcl:"vm_name"`
@@ -83,6 +85,7 @@ type FlatConfig struct {
 	EnableHtt  *bool   `mapstructure:"enable_htt" cty:"enable_htt" hcl:"enable_htt"`
 	DisableHtt *bool   `mapstructure:"disable_htt" cty:"disable_htt" hcl:"disable_htt"`
 	UseAnkaCP  *bool   `mapstructure:"use_anka_cp" cty:"use_anka_cp" hcl:"use_anka_cp"`
+	StopVM     *bool   `mapstructure:"stop_vm" cty:"stop_vm" hcl:"stop_vm"`
 }
 
 // FlatMapstructure returns a new FlatConfig.
@@ -154,6 +157,8 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"winrm_use_ssl":                &hcldec.AttrSpec{Name: "winrm_use_ssl", Type: cty.Bool, Required: false},
 		"winrm_insecure":               &hcldec.AttrSpec{Name: "winrm_insecure", Type: cty.Bool, Required: false},
 		"winrm_use_ntlm":               &hcldec.AttrSpec{Name: "winrm_use_ntlm", Type: cty.Bool, Required: false},
+		"anka_user":                    &hcldec.AttrSpec{Name: "anka_user", Type: cty.String, Required: false},
+		"anka_password":                &hcldec.AttrSpec{Name: "anka_password", Type: cty.String, Required: false},
 		"installer_app":                &hcldec.AttrSpec{Name: "installer_app", Type: cty.String, Required: false},
 		"source_vm_name":               &hcldec.AttrSpec{Name: "source_vm_name", Type: cty.String, Required: false},
 		"vm_name":                      &hcldec.AttrSpec{Name: "vm_name", Type: cty.String, Required: false},
@@ -166,6 +171,7 @@ func (*FlatConfig) HCL2Spec() map[string]hcldec.Spec {
 		"enable_htt":                   &hcldec.AttrSpec{Name: "enable_htt", Type: cty.Bool, Required: false},
 		"disable_htt":                  &hcldec.AttrSpec{Name: "disable_htt", Type: cty.Bool, Required: false},
 		"use_anka_cp":                  &hcldec.AttrSpec{Name: "use_anka_cp", Type: cty.Bool, Required: false},
+		"stop_vm":                      &hcldec.AttrSpec{Name: "stop_vm", Type: cty.Bool, Required: false},
 	}
 	return s
 }
