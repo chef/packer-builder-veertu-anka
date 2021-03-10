@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/groob/plist"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
@@ -15,8 +13,6 @@ import (
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
 	"github.com/veertuinc/packer-builder-veertu-anka/common"
 )
-
-var random *rand.Rand
 
 const (
 	DEFAULT_DISK_SIZE = "40G"
@@ -29,22 +25,25 @@ type StepCreateVM struct {
 	vmName string
 }
 
-func init() {
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
-
 func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packer.Ui)
 
-	s.client = state.Get("client").(client.Client)
-	s.vmName = config.VMName
-
-	state.Put("vm_name", s.vmName)
-
 	onError := func(err error) multistep.StepAction {
 		return stepError(ui, state, err)
 	}
+
+	s.client = state.Get("client").(client.Client)
+	s.vmName = config.VMName
+
+	macOSVersionFromInstallerApp, err := obtainMacOSVersionFromInstallerApp(config.InstallerApp)
+	if err != nil {
+		return onError(err)
+	}
+
+	s.vmName = fmt.Sprintf("%s-%s", s.vmName, macOSVersionFromInstallerApp)
+
+	state.Put("vm_name", s.vmName)
 
 	if config.AnkaPassword != "" {
 		os.Setenv("ANKA_DEFAULT_PASSWD", config.AnkaPassword)
@@ -54,7 +53,6 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 		os.Setenv("ANKA_DEFAULT_USER", config.AnkaUser)
 	}
 
-	// If the user forces the build (packer build --force), delete the existing VM that would fail the build
 	if config.PackerForce {
 		exists, err := s.client.Exists(s.vmName)
 		if err != nil {
@@ -71,7 +69,7 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 		}
 	}
 
-	err := s.createFromInstallerApp(ui, config)
+	err = s.createFromInstallerApp(ui, config)
 	if err != nil {
 		return onError(err)
 	}
@@ -143,16 +141,6 @@ func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
 
 		panic(err)
 	}
-}
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[random.Intn(len(letters))]
-	}
-	return string(b)
 }
 
 func obtainMacOSVersionFromInstallerApp(path string) (string, error) {

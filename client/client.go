@@ -19,6 +19,7 @@ type Client interface {
 	Exists(vmName string) (bool, error)
 	Modify(vmName string, command string, property string, flags ...string) error
 	RegistryList(registryParams RegistryParams) ([]RegistryListResponse, error)
+	RegistryPull(registryParams RegistryParams, pullParams RegistryPullParams) error
 	RegistryPush(registryParams RegistryParams, pushParams RegistryPushParams) error
 	RegistryRevert(url string, id string) error
 	Run(params RunParams) (error, int)
@@ -26,6 +27,7 @@ type Client interface {
 	Start(params StartParams) error
 	Stop(params StopParams) error
 	Suspend(params SuspendParams) error
+	UpdateAddons(vmName string) error
 	Version() (VersionResponse, error)
 }
 

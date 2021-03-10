@@ -288,6 +288,13 @@ func (c *AnkaClient) Suspend(params SuspendParams) error {
 	return err
 }
 
+func (c *AnkaClient) UpdateAddons(vmName string) error {
+	args := []string{"start", "--update-addons", vmName}
+
+	_, err := runCommand(args...)
+	return err
+}
+
 type VersionResponse struct {
 	Status string              `json:"status"`
 	Body   VersionResponseBody `json:"body"`

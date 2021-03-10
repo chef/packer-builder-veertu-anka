@@ -96,7 +96,7 @@ This will clone `10.15.6` to a new VM and, if there are differences from the bas
 
 * `installer_app` (String)
 
-The path to a macOS installer. This must be provided if `source_vm_name` isn't provided. This process takes about 20 minutes. The resulting VM template name will be `anka-packer-base-{macOSVersion}`.
+The path to a macOS installer. This process takes about 20 minutes. The resulting VM template name will be `{{vm_name}}-{{macOSVersion}}`. macOSVersion is pulled from the installer app.
 
 * `type` (String)
 
@@ -234,6 +234,14 @@ The Hardware UUID you wish to set (usually generated with `uuidgen`).
 
 The size in "[0-9]+G" format, defaults to `2G`.
 
+* `registry-path` (String)
+
+The registry URL (will use your default configuration if not set).
+
+* `remote` (String)
+
+The registry name (will use your default configuration if not set).
+
 * `source_vm_tag` (String)
 
 Specify the tag of the VM we want to clone instead of using the default.
@@ -286,7 +294,7 @@ Assign a tag to your local template and avoid pushing to the Registry.
 
 The registry URL (will use your default configuration if not set).
 
-* `remtoe` (String)
+* `remote` (String)
 
 The registry name (will use your default configuration if not set).
 

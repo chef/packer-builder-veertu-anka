@@ -11,13 +11,6 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/net"
 )
 
-// https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#registry-list
-type RegistryListResponse struct {
-	Latest string `json:"latest"`
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-}
-
 // Run command against the registry
 type RegistryParams struct {
 	RegistryName string
@@ -26,6 +19,68 @@ type RegistryParams struct {
 	NodeKeyPath  string
 	CaRootPath   string
 	IsInsecure   bool
+}
+
+// https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#registry-list
+type RegistryListResponse struct {
+	Latest string `json:"latest"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+}
+
+func (c *AnkaClient) RegistryList(registryParams RegistryParams) ([]RegistryListResponse, error) {
+	var response []RegistryListResponse
+
+	output, err := runRegistryCommand(registryParams, "list")
+	if err != nil {
+		return nil, err
+	}
+	if output.Status != "OK" {
+		log.Print("Error executing registry list command: ", output.ExceptionType, " ", output.Message)
+		return nil, fmt.Errorf(output.Message)
+	}
+
+	err = json.Unmarshal(output.Body, &response)
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+type RegistryPullParams struct {
+	VMID   string
+	Tag    string
+	Local  bool
+	Shrink bool
+}
+
+func (c *AnkaClient) RegistryPull(registryParams RegistryParams, pullParams RegistryPullParams) error {
+	cmdArgs := []string{"pull"}
+
+	if pullParams.Tag != "" {
+		cmdArgs = append(cmdArgs, "--tag", pullParams.Tag)
+	}
+
+	if pullParams.Local {
+		cmdArgs = append(cmdArgs, "--local")
+
+		if pullParams.Shrink {
+			cmdArgs = append(cmdArgs, "--shrink")
+		}
+	}
+
+	cmdArgs = append(cmdArgs, pullParams.VMID)
+
+	output, err := runRegistryCommand(registryParams, cmdArgs...)
+	if err != nil {
+		return err
+	}
+	if output.Status != "OK" {
+		return fmt.Errorf(output.Message)
+	}
+
+	return nil
 }
 
 // https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#registry-push
@@ -37,39 +92,25 @@ type RegistryPushParams struct {
 	Local       bool
 }
 
-func (c *AnkaClient) RegistryList(registryParams RegistryParams) ([]RegistryListResponse, error) {
-	output, err := runRegistryCommand(registryParams, "list")
-	if err != nil {
-		return nil, err
-	}
-	if output.Status != "OK" {
-		log.Print("Error executing registry list command: ", output.ExceptionType, " ", output.Message)
-		return nil, fmt.Errorf(output.Message)
-	}
-
-	var response []RegistryListResponse
-	err = json.Unmarshal(output.Body, &response)
-	if err != nil {
-		return response, err
-	}
-
-	return response, nil
-}
-
 func (c *AnkaClient) RegistryPush(registryParams RegistryParams, pushParams RegistryPushParams) error {
 	cmdArgs := []string{"push"}
+
 	if pushParams.Tag != "" {
 		cmdArgs = append(cmdArgs, "--tag", pushParams.Tag)
 	}
+
 	if pushParams.Description != "" {
 		cmdArgs = append(cmdArgs, "--description", pushParams.Description)
 	}
+
 	if pushParams.RemoteVM != "" {
 		cmdArgs = append(cmdArgs, "--remote-vm", pushParams.RemoteVM)
 	}
+
 	if pushParams.Local {
 		cmdArgs = append(cmdArgs, "--local")
 	}
+
 	cmdArgs = append(cmdArgs, pushParams.VMID)
 
 	output, err := runRegistryCommand(registryParams, cmdArgs...)
@@ -77,9 +118,9 @@ func (c *AnkaClient) RegistryPush(registryParams RegistryParams, pushParams Regi
 		return err
 	}
 	if output.Status != "OK" {
-		log.Print("Error executing registry push command: ", output.ExceptionType, " ", output.Message)
 		return fmt.Errorf(output.Message)
 	}
+
 	return nil
 }
 
@@ -102,9 +143,8 @@ func registryRESTRequest(method string, url string, body io.Reader) (MachineRead
 		return MachineReadableOutput{}, err
 	}
 
-	log.Printf("[API REQUEST] [%s] %s", method, url)
-
 	httpClient := net.HttpClientWithEnvironmentProxy()
+
 	resp, err := httpClient.Do(request)
 	if err != nil {
 		return MachineReadableOutput{}, err
@@ -112,12 +152,11 @@ func registryRESTRequest(method string, url string, body io.Reader) (MachineRead
 
 	if resp.StatusCode == 200 {
 		defer resp.Body.Close()
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return MachineReadableOutput{}, err
 		}
-
-		log.Printf("[API RESPONSE] %s", string(body))
 
 		return parseOutput(body)
 	}

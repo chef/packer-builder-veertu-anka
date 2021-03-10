@@ -18,12 +18,13 @@ func runCommandStreamer(outputStreamer chan string, args ...string) (MachineRead
 	}
 
 	cmdArgs := append([]string{"--machine-readable"}, args...)
+
 	log.Printf("Executing anka %s", strings.Join(cmdArgs, " "))
+
 	cmd := exec.Command("anka", cmdArgs...)
 
 	outPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Println("Err on stdoutpipe")
 		return MachineReadableOutput{}, err
 	}
 
@@ -32,22 +33,21 @@ func runCommandStreamer(outputStreamer chan string, args ...string) (MachineRead
 	}
 
 	if err = cmd.Start(); err != nil {
-		log.Printf("Failed with an error of %v", err)
 		return MachineReadableOutput{}, err
 	}
+
 	outScanner := bufio.NewScanner(outPipe)
 	outScanner.Split(customSplit)
 
 	for outScanner.Scan() {
 		out := outScanner.Text()
-		log.Printf("%s", out)
 
 		if outputStreamer != nil {
 			outputStreamer <- out
 		}
 	}
 
-	scannerErr := outScanner.Err() // Expecting error on final output
+	scannerErr := outScanner.Err()
 	if scannerErr == nil {
 		return MachineReadableOutput{}, errors.New("missing machine readable output")
 	}
@@ -56,12 +56,12 @@ func runCommandStreamer(outputStreamer chan string, args ...string) (MachineRead
 	}
 
 	finalOutput := scannerErr.Error()
-	log.Printf("%s", finalOutput)
 
 	parsed, err := parseOutput([]byte(finalOutput))
 	if err != nil {
 		return MachineReadableOutput{}, err
 	}
+
 	cmd.Wait()
 
 	if err = parsed.GetError(); err != nil {
@@ -73,21 +73,27 @@ func runCommandStreamer(outputStreamer chan string, args ...string) (MachineRead
 
 func runRegistryCommand(registryParams RegistryParams, args ...string) (MachineReadableOutput, error) {
 	cmdArgs := []string{"registry"}
+
 	if registryParams.RegistryName != "" {
 		cmdArgs = append(cmdArgs, "--remote", registryParams.RegistryName)
 	}
+
 	if registryParams.RegistryURL != "" {
 		cmdArgs = append(cmdArgs, "--registry-path", registryParams.RegistryURL)
 	}
+
 	if registryParams.NodeCertPath != "" {
 		cmdArgs = append(cmdArgs, "--cert", registryParams.NodeCertPath)
 	}
+
 	if registryParams.NodeKeyPath != "" {
 		cmdArgs = append(cmdArgs, "--key", registryParams.NodeKeyPath)
 	}
+
 	if registryParams.CaRootPath != "" {
 		cmdArgs = append(cmdArgs, "--cacert", registryParams.CaRootPath)
 	}
+
 	if registryParams.IsInsecure {
 		cmdArgs = append(cmdArgs, "--insecure")
 	}

@@ -20,8 +20,8 @@ const BuilderIdRegistry = "packer.post-processor.veertu-anka-registry"
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 
-	RegistryName string `mapstructure:"remote"`
-	RegistryURL  string `mapstructure:"registry-path"`
+	RegistryName string `mapstructure:"registry_name"`
+	RegistryURL  string `mapstructure:"registry_path"`
 	NodeCertPath string `mapstructure:"cert"`
 	NodeKeyPath  string `mapstructure:"key"`
 	CaRootPath   string `mapstructure:"cacert"`
@@ -29,7 +29,7 @@ type Config struct {
 
 	Tag         string `mapstructure:"tag"`
 	Description string `mapstructure:"description"`
-	RemoteVM    string `mapstructure:"remote-vm"`
+	RemoteVM    string `mapstructure:"remote_vm"`
 	Local       bool   `mapstructure:"local"`
 
 	ctx interpolate.Context
@@ -117,9 +117,11 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 		}
 
 		if id != "" {
-			if err := p.client.RegistryRevert(registryParams.RegistryURL, id); err != nil {
+			err = p.client.RegistryRevert(registryParams.RegistryURL, id)
+			if err != nil {
 				return nil, false, false, err
 			}
+
 			ui.Say(fmt.Sprintf("Reverted latest tag for template '%s' on registry", id))
 		}
 	}

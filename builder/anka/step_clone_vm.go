@@ -20,6 +20,20 @@ type StepCloneVM struct {
 func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packer.Ui)
+	sourceVMTag := "latest"
+
+	if config.SourceVMTag != "" {
+		sourceVMTag = config.SourceVMTag
+	}
+
+	registryParams := client.RegistryParams{
+		RegistryName: config.RegistryName,
+		RegistryURL:  config.RegistryURL,
+		NodeCertPath: config.NodeCertPath,
+		NodeKeyPath:  config.NodeKeyPath,
+		CaRootPath:   config.CaRootPath,
+		IsInsecure:   config.IsInsecure,
+	}
 
 	s.client = state.Get("client").(client.Client)
 	s.vmName = config.VMName
@@ -30,7 +44,6 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 		return stepError(ui, state, err)
 	}
 
-	// If the user forces the build (packer build --force), delete the existing VM that would fail the build
 	if config.PackerForce {
 		exists, err := s.client.Exists(s.vmName)
 		if err != nil {
@@ -47,12 +60,33 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 		}
 	}
 
-	exists, err := s.client.Exists(config.SourceVMName)
-	if err != nil {
-		return onError(err)
+	registryPullParams := client.RegistryPullParams{
+		VMID:   config.SourceVMName,
+		Tag:    sourceVMTag,
+		Local:  false,
+		Shrink: false,
 	}
-	if !exists {
-		return onError(fmt.Errorf("source vm %s does not exist. create it before cloning", config.SourceVMName))
+
+	if config.AlwaysFetch {
+		ui.Say(fmt.Sprintf("Pulling source VM %s with tag %s from Anka Registry", config.SourceVMName, sourceVMTag))
+
+		err := s.client.RegistryPull(registryParams, registryPullParams)
+		if err != nil {
+			return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, config.SourceVMTag))
+		}
+	} else {
+		sourceExists, err := s.client.Exists(config.SourceVMName)
+		if err != nil {
+			return onError(err)
+		}
+		if !sourceExists {
+			ui.Say(fmt.Sprintf("Pulling source VM %s with tag %s from Anka Registry", config.SourceVMName, sourceVMTag))
+
+			err := s.client.RegistryPull(registryParams, registryPullParams)
+			if err != nil {
+				return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, config.SourceVMTag))
+			}
+		}
 	}
 
 	sourceShow, err := s.client.Show(config.SourceVMName)
@@ -80,6 +114,15 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 	err = s.modifyVMProperties(clonedShow, config, ui)
 	if err != nil {
 		return onError(err)
+	}
+
+	if config.UpdateAddons {
+		ui.Say(fmt.Sprintf("Updating guest addons for %s", s.vmName))
+
+		err := s.client.UpdateAddons(s.vmName)
+		if err != nil {
+			return onError(err)
+		}
 	}
 
 	if clonedShow.IsRunning() {
