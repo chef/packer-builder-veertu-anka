@@ -12,11 +12,13 @@ import (
 	"github.com/veertuinc/packer-builder-veertu-anka/common"
 )
 
+// StepCloneVM will be used to run the clone step for any 'vm-clone' builder types
 type StepCloneVM struct {
 	client client.Client
 	vmName string
 }
 
+// Run clones a vm from a source vm either from an anka registry or locally
 func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packer.Ui)
@@ -24,6 +26,10 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 
 	if config.SourceVMTag != "" {
 		sourceVMTag = config.SourceVMTag
+	}
+
+	onError := func(err error) multistep.StepAction {
+		return stepError(ui, state, err)
 	}
 
 	registryParams := client.RegistryParams{
@@ -40,16 +46,11 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 
 	state.Put("vm_name", s.vmName)
 
-	onError := func(err error) multistep.StepAction {
-		return stepError(ui, state, err)
-	}
-
 	if config.PackerForce {
 		exists, err := s.client.Exists(s.vmName)
 		if err != nil {
 			return onError(err)
 		}
-
 		if exists {
 			ui.Say(fmt.Sprintf("Deleting existing virtual machine %s", s.vmName))
 
@@ -72,19 +73,22 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 
 		err := s.client.RegistryPull(registryParams, registryPullParams)
 		if err != nil {
-			return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, config.SourceVMTag))
+			return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag))
 		}
 	} else {
+		log.Printf("Searching for %s locally...", config.SourceVMName)
+
 		sourceExists, err := s.client.Exists(config.SourceVMName)
 		if err != nil {
 			return onError(err)
 		}
 		if !sourceExists {
+			log.Printf("Could not find %s locally, looking in anka registry...", config.SourceVMName)
 			ui.Say(fmt.Sprintf("Pulling source VM %s with tag %s from Anka Registry", config.SourceVMName, sourceVMTag))
 
 			err := s.client.RegistryPull(registryParams, registryPullParams)
 			if err != nil {
-				return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, config.SourceVMTag))
+				return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag))
 			}
 		}
 	}
@@ -125,27 +129,10 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 		}
 	}
 
-	if clonedShow.IsRunning() {
-		if config.StopVM {
-			ui.Say(fmt.Sprintf("Stopping VM %s", s.vmName))
-
-			err := s.client.Stop(client.StopParams{VMName: s.vmName})
-			if err != nil {
-				return onError(err)
-			}
-		} else {
-			ui.Say(fmt.Sprintf("Suspending VM %s", s.vmName))
-
-			err := s.client.Suspend(client.SuspendParams{VMName: s.vmName})
-			if err != nil {
-				return onError(err)
-			}
-		}
-	}
-
 	return multistep.ActionContinue
 }
 
+// Cleanup will delete the vm if there happens to be an error and handle anything failed states
 func (s *StepCloneVM) Cleanup(state multistep.StateBag) {
 	ui := state.Get("ui").(packer.Ui)
 
@@ -173,15 +160,6 @@ func (s *StepCloneVM) Cleanup(state multistep.StateBag) {
 
 			return
 		}
-	}
-
-	err := s.client.Suspend(client.SuspendParams{VMName: s.vmName})
-	if err != nil {
-		ui.Error(fmt.Sprint(err))
-
-		_ = s.client.Delete(client.DeleteParams{VMName: s.vmName})
-
-		panic(err)
 	}
 }
 
@@ -270,18 +248,17 @@ func (s *StepCloneVM) modifyVMResources(showResponse client.ShowResponse, config
 }
 
 func (s *StepCloneVM) modifyVMProperties(showResponse client.ShowResponse, config *Config, ui packer.Ui) error {
-	describeResponse, err := s.client.Describe(showResponse.Name)
-	if err != nil {
-		return err
-	}
-
 	stopParams := client.StopParams{
 		VMName: showResponse.Name,
 		Force:  true,
 	}
 
 	if len(config.PortForwardingRules) > 0 {
-		// Check if the rule already exists
+		describeResponse, err := s.client.Describe(showResponse.Name)
+		if err != nil {
+			return err
+		}
+
 		existingForwardedPorts := make(map[int]struct{})
 		for _, existingNetworkCard := range describeResponse.NetworkCards {
 			for _, existingPortForwardingRule := range existingNetworkCard.PortForwardingRules {
@@ -291,7 +268,6 @@ func (s *StepCloneVM) modifyVMProperties(showResponse client.ShowResponse, confi
 
 		for _, wantedPortForwardingRule := range config.PortForwardingRules {
 			ui.Say(fmt.Sprintf("Ensuring %s port-forwarding (Guest Port: %s, Host Port: %s, Rule Name: %s)", showResponse.Name, strconv.Itoa(wantedPortForwardingRule.PortForwardingGuestPort), strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort), wantedPortForwardingRule.PortForwardingRuleName))
-			// Check if host port is set already and warn the user
 			if _, ok := existingForwardedPorts[wantedPortForwardingRule.PortForwardingHostPort]; ok {
 				ui.Error(fmt.Sprintf("Found an existing host port rule (%s)! Skipping without setting...", strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort)))
 				continue
@@ -303,7 +279,6 @@ func (s *StepCloneVM) modifyVMProperties(showResponse client.ShowResponse, confi
 			}
 
 			err = s.client.Modify(showResponse.Name, "add", "port-forwarding", "--host-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingHostPort), "--guest-port", strconv.Itoa(wantedPortForwardingRule.PortForwardingGuestPort), wantedPortForwardingRule.PortForwardingRuleName)
-			// If force is enabled, just skip
 			if !config.PackerConfig.PackerForce {
 				if err != nil {
 					return err

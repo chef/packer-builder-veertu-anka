@@ -3,6 +3,7 @@ package anka
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -34,9 +35,9 @@ func (b *Builder) Prepare(raws ...interface{}) (params []string, warns []string,
 
 // Run executes an Anka Packer build and returns a packer.Artifact
 func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (packer.Artifact, error) {
-	client := &client.AnkaClient{}
+	ankaClient := &client.AnkaClient{}
 
-	version, err := client.Version()
+	version, err := ankaClient.Version()
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 	state.Put("config", b.config)
 	state.Put("hook", hook)
 	state.Put("ui", ui)
-	state.Put("client", client)
+	state.Put("client", ankaClient)
 
 	steps := []multistep.Step{
 		&StepTempDir{},
@@ -94,9 +95,25 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 	}
 
 	// Check we can describe the VM
-	descr, err := client.Describe(state.Get("vm_name").(string))
+	descr, err := ankaClient.Describe(state.Get("vm_name").(string))
 	if err != nil {
 		return nil, err
+	}
+
+	if b.config.StopVM {
+		ui.Say(fmt.Sprintf("Stopping VM %s", descr.Name))
+
+		err := ankaClient.Stop(client.StopParams{VMName: descr.Name})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		ui.Say(fmt.Sprintf("Suspending VM %s", descr.Name))
+
+		err := ankaClient.Suspend(client.SuspendParams{VMName: descr.Name})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// No errors, must've worked

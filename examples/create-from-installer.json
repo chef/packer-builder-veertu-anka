@@ -12,6 +12,6 @@
   "builders": [{
     "installer_app": "/Applications/Install macOS Big Sur.app/",
     "type": "veertu-anka-vm-create",
-    "vm_name": "macos-big-sur"
+    "vm_name": "anka-base-macos"
   }]
 }

@@ -110,11 +110,11 @@ The name for the VM that is created. One is generated if not provided (`anka-pac
 
 * `anka_password` (String)
 
-Sets the password for the vm. Defaults to `admin`.
+Sets the password for the vm. Can also be set with `ANKA_DEFAULT_PASSWD` env var. Defaults to `admin`.
 
 * `anka_user` (String)
 
-Sets the username for the vm. Defaults to `anka`.
+Sets the username for the vm. Can also be set with `ANKA_DEFAULT_USER` env var. Defaults to `anka`.
 
 * `boot_delay` (String)
 

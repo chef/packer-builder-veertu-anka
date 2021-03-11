@@ -1,9 +1,11 @@
 //go:generate mapstructure-to-hcl2 -type Config
+
 package anka
 
 import (
 	"errors"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -15,10 +17,15 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-const DEFAULT_BOOT_DELAY = "10s"
+const defaultBootDelay = "10s"
 
-var random *rand.Rand
+var (
+	random  *rand.Rand
+	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+)
 
+// Config initializes the builders using mapstructure which decodes
+// generic map values from either the json or hcl2 config files provided
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 	Comm                communicator.Config `mapstructure:",squash"`
@@ -67,6 +74,8 @@ func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
+// NewConfig generates a machine readable config from the generic map values above
+// and provides an inital setup values and scrubs the data for any mistakes
 func NewConfig(raws ...interface{}) (*Config, error) {
 	var c Config
 
@@ -80,7 +89,15 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 	}
 
 	if c.BootDelay == "" {
-		c.BootDelay = DEFAULT_BOOT_DELAY
+		c.BootDelay = defaultBootDelay
+	}
+
+	if c.AnkaPassword != "" {
+		os.Setenv("ANKA_DEFAULT_PASSWD", c.AnkaPassword)
+	}
+
+	if c.AnkaUser != "" {
+		os.Setenv("ANKA_DEFAULT_USER", c.AnkaUser)
 	}
 
 	var errs *packer.MultiError
@@ -122,8 +139,6 @@ func NewConfig(raws ...interface{}) (*Config, error) {
 
 	return &c, nil
 }
-
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func randSeq(n int) string {
 	b := make([]rune, n)

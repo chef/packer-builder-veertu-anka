@@ -1,6 +1,6 @@
 {
   "variables": {
-    "source_vm_name": "macos-big-sur"
+    "source_vm_name": ""
   },
   "provisioners": [
     {
