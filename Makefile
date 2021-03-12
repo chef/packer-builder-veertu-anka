@@ -32,7 +32,7 @@ build-and-install: $(BIN)
 	$(MAKE) install
 
 packer-test: install
-	PACKER_LOG=1 packer build examples/create-from-installer-with-post-processing.json
+	PACKER_LOG=1 packer build examples/create-from-installer.json
 
 clean:
 	rm -f $(BIN)

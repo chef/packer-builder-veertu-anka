@@ -319,6 +319,12 @@ The name of the tag to push (will default as 'latest' if not set).
 
 You will need a recent golang installed and setup. See `go.mod` for which version is expected.
 
+To test a basic vm creation, run:
+
+```bash
+make packer-test
+```
+
 To test the post processor you will need an active vpn connection that can reach an anka registry. You can setup an anka registry by either adding the registry locally with:
 
 ```bash
@@ -327,7 +333,7 @@ anka registry add <registry_name> <registry_url>
 
 -or-
 
-You can setup the `create-from-installer-with-post-processing.json` with the correct registry values and run:
+You can setup the `create-from-installer-with-post-processing.json` with the correct registry values and update the make target `packer-test` to use that json file and run:
 
 ```bash
 make packer-test
