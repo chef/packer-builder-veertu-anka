@@ -336,5 +336,19 @@ make packer-test
 make build-and-install && PACKER_LOG=1 packer build examples/create-from-installer.json
 ```
 
+To test the post processor you will need an active vpn connection that can reach an anka registry. You can setup an anka registry by either adding the registry locally with:
+
+```bash
+anka registry add <registry_name> <registry_url>
+```
+
+-or-
+
+You can setup the json with the correct registry values and run:
+
+```bash
+make build-and-install && PACKER_LOG=1 packer build examples/create-from-installer-with-post-processing.json
+```
+
 [Packer Builder]: https://www.packer.io/docs/extending/custom-builders.html
 [Veertu Anka]: https://veertu.com/
