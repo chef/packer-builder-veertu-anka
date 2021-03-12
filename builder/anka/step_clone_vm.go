@@ -28,18 +28,10 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 		return util.StepError(ui, state, err)
 	}
 	sourceVMTag := "latest"
+	doPull := config.AlwaysFetch
 
 	if config.SourceVMTag != "" {
 		sourceVMTag = config.SourceVMTag
-	}
-
-	registryParams := client.RegistryParams{
-		RegistryName: config.RegistryName,
-		RegistryURL:  config.RegistryURL,
-		NodeCertPath: config.NodeCertPath,
-		NodeKeyPath:  config.NodeKeyPath,
-		CaRootPath:   config.CaRootPath,
-		IsInsecure:   config.IsInsecure,
 	}
 
 	s.client = state.Get("client").(client.Client)
@@ -62,21 +54,7 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 		}
 	}
 
-	registryPullParams := client.RegistryPullParams{
-		VMID:   config.SourceVMName,
-		Tag:    sourceVMTag,
-		Local:  false,
-		Shrink: false,
-	}
-
-	if config.AlwaysFetch {
-		ui.Say(fmt.Sprintf("Pulling source VM %s with tag %s from Anka Registry", config.SourceVMName, sourceVMTag))
-
-		err := s.client.RegistryPull(registryParams, registryPullParams)
-		if err != nil {
-			return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag))
-		}
-	} else {
+	if !config.AlwaysFetch {
 		log.Printf("Searching for %s locally...", config.SourceVMName)
 
 		sourceExists, err := s.client.Exists(config.SourceVMName)
@@ -85,12 +63,33 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 		}
 		if !sourceExists {
 			log.Printf("Could not find %s locally, looking in anka registry...", config.SourceVMName)
-			ui.Say(fmt.Sprintf("Pulling source VM %s with tag %s from Anka Registry", config.SourceVMName, sourceVMTag))
 
-			err := s.client.RegistryPull(registryParams, registryPullParams)
-			if err != nil {
-				return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag))
-			}
+			doPull = true
+		}
+	}
+
+	if doPull {
+		ui.Say(fmt.Sprintf("Pulling source VM %s with tag %s from Anka Registry", config.SourceVMName, sourceVMTag))
+
+		registryParams := client.RegistryParams{
+			RegistryName: config.RegistryName,
+			RegistryURL:  config.RegistryURL,
+			NodeCertPath: config.NodeCertPath,
+			NodeKeyPath:  config.NodeKeyPath,
+			CaRootPath:   config.CaRootPath,
+			IsInsecure:   config.IsInsecure,
+		}
+
+		registryPullParams := client.RegistryPullParams{
+			VMID:   config.SourceVMName,
+			Tag:    sourceVMTag,
+			Local:  false,
+			Shrink: false,
+		}
+
+		err := s.client.RegistryPull(registryParams, registryPullParams)
+		if err != nil {
+			return onError(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag))
 		}
 	}
 

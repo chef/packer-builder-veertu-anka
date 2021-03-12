@@ -71,9 +71,6 @@ You can also skip the creation of the base VM template and use an existing VM te
   ],
   "builders": [{
     "type": "veertu-anka-vm-clone",
-    "cpu_count": 8,
-    "ram_size": "10G",
-    "disk_size": "150G",
     "source_vm_name": "10.15.6",
     "vm_name": "macos-from-source_10.15.6"
   }]
@@ -141,8 +138,6 @@ The Hardware UUID you wish to set (usually generated with `uuidgen`).
 ```json
   "builders": [{
     "type": "veertu-anka-vm-clone",
-    "cpu_count": 8,
-    "ram_size": "10G",
     "source_vm_name": "anka-packer-base-10.15.7",
     "port_forwarding_rules": [
       {
@@ -229,8 +224,6 @@ The Hardware UUID you wish to set (usually generated with `uuidgen`).
 ```json
   "builders": [{
     "type": "veertu-anka-vm-clone",
-    "cpu_count": 8,
-    "ram_size": "10G",
     "source_vm_name": "anka-packer-base-10.15.7",
     "port_forwarding_rules": [
       {
@@ -326,16 +319,6 @@ The name of the tag to push (will default as 'latest' if not set).
 
 You will need a recent golang installed and setup. See `go.mod` for which version is expected.
 
-```bash
-make packer-test
-```
-
--or-
-
-```bash
-make build-and-install && PACKER_LOG=1 packer build examples/create-from-installer.json
-```
-
 To test the post processor you will need an active vpn connection that can reach an anka registry. You can setup an anka registry by either adding the registry locally with:
 
 ```bash
@@ -344,10 +327,10 @@ anka registry add <registry_name> <registry_url>
 
 -or-
 
-You can setup the json with the correct registry values and run:
+You can setup the `create-from-installer-with-post-processing.json` with the correct registry values and run:
 
 ```bash
-make build-and-install && PACKER_LOG=1 packer build examples/create-from-installer-with-post-processing.json
+make packer-test
 ```
 
 [Packer Builder]: https://www.packer.io/docs/extending/custom-builders.html
