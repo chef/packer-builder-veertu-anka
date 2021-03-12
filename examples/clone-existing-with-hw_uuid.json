@@ -17,9 +17,8 @@
     {
       "type": "veertu-anka-vm",
       "hw_uuid": "{{user `hw_uuid`}}",
-      "cpu_count": 10,
-      "ram_size": "12G",
-      "source_vm_name": "{{user `source_vm_name`}}"
+      "source_vm_name": "{{user `source_vm_name`}}",
+      "vm_name": "macos-from-{{user `source_vm_name`}}"
     }
   ]
 }

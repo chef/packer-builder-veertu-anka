@@ -26,6 +26,7 @@ func TestCloneVMRun(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	client := mocks.NewMockClient(mockCtrl)
+	util := mocks.NewMockUtil(mockCtrl)
 
 	step := StepCloneVM{}
 	ui := packer.TestUi(t)
@@ -33,6 +34,7 @@ func TestCloneVMRun(t *testing.T) {
 	state := new(multistep.BasicStateBag)
 
 	state.Put("ui", ui)
+	state.Put("util", util)
 
 	err := json.Unmarshal(json.RawMessage(`{ "UUID": "1234-abcdef-hijk-5678", "Name": "source_foo" }`), &sourceShowResponse)
 	if err != nil {
@@ -184,6 +186,10 @@ func TestCloneVMRun(t *testing.T) {
 				RegistryPull(registryParams, registryPullParams).
 				Return(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag)).
 				Times(1),
+			util.EXPECT().
+				StepError(ui, state, fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag)).
+				Return(multistep.ActionHalt).
+				Times(1),
 		)
 
 		stepAction := step.Run(ctx, state)
@@ -257,10 +263,16 @@ func TestCloneVMRun(t *testing.T) {
 		state.Put("client", client)
 		state.Put("config", config)
 
-		client.EXPECT().
-			RegistryPull(registryParams, registryPullParams).
-			Return(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag)).
-			Times(1)
+		gomock.InOrder(
+			client.EXPECT().
+				RegistryPull(registryParams, registryPullParams).
+				Return(fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag)).
+				Times(1),
+			util.EXPECT().
+				StepError(ui, state, fmt.Errorf("failed to pull vm %v with tag %v from registry", config.SourceVMName, sourceVMTag)).
+				Return(multistep.ActionHalt).
+				Times(1),
+		)
 
 		stepAction := step.Run(ctx, state)
 
@@ -307,6 +319,7 @@ func TestCloneVMRun(t *testing.T) {
 
 		// disksize
 		gomock.InOrder(
+			util.EXPECT().ConvertDiskSizeToBytes(config.DiskSize).Return(uint64(120*1024*1024*1024), nil).Times(1),
 			client.EXPECT().Stop(stopParams).Return(nil).Times(1),
 			client.EXPECT().Modify(clonedShowResponse.Name, "set", "hard-drive", "-s", config.DiskSize).Return(nil).Times(1),
 			client.EXPECT().Run(runParams).Return(nil, 0).Times(1),

@@ -192,6 +192,14 @@ Always pull the source VM from the registry. Defaults to false.
 
 The time to wait before running packer provisioner commands, defaults to `10s`.
 
+* `cacert` (String)
+
+Path to a CA Root certificate.
+
+* `cert` (String)
+
+Path to your node certificate (if certificate authority is enabled).
+
 * `cpu_count` (String)
 
 The number of CPU cores, defaults to `2`.
@@ -201,6 +209,14 @@ The number of CPU cores, defaults to `2`.
 The size in "[0-9]+G" format, defaults to `25G`.
 
 > We will automatically resize the internal disk for you by executing: `diskutil apfs resizeContainer disk1 0`
+
+* `insecure` (Boolean)
+
+Skip TLS verification.
+
+* `key` (String)
+
+Path to your node certificate key if the client/node certificate doesn't contain one.
 
 * `hw_uuid` (String)
 

@@ -14,9 +14,6 @@
   ],
   "builders": [{
     "type": "veertu-anka-vm-clone",
-    "cpu_count": 8,
-    "ram_size": "10G",
-    "disk_size": "150G",
     "source_vm_name": "{{user `source_vm_name`}}",
     "vm_name": "macos-from-{{user `source_vm_name`}}"
   }]

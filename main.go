@@ -24,7 +24,9 @@ func main() {
 	pps.RegisterBuilder("vm-create", new(anka.Builder))
 	pps.RegisterBuilder("vm-clone", new(anka.Builder))
 	pps.RegisterPostProcessor("registry-push", new(ankaregistry.PostProcessor))
-	if err := pps.Run(); err != nil {
+
+	err := pps.Run()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}

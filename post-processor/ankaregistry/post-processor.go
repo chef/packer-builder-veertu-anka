@@ -15,8 +15,11 @@ import (
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
 )
 
+// BuilderIdRegistry unique id for this post processor
 const BuilderIdRegistry = "packer.post-processor.veertu-anka-registry"
 
+// Config initializes the post processor using mapstructure which decodes
+// generic map values from either the json or hcl2 config files provided
 type Config struct {
 	common.PackerConfig `mapstructure:",squash"`
 
@@ -35,13 +38,16 @@ type Config struct {
 	ctx interpolate.Context
 }
 
+// PostProcessor is used to run the post processor
 type PostProcessor struct {
 	config Config
 	client client.Client
 }
 
+// ConfigSpec returns the decoded mapstructure config values into their respective format
 func (p *PostProcessor) ConfigSpec() hcldec.ObjectSpec { return p.config.FlatMapstructure().HCL2Spec() }
 
+// Configure sets up the post processor with the decoded config values
 func (p *PostProcessor) Configure(raws ...interface{}) error {
 	err := config.Decode(&p.config, &config.DecodeOpts{
 		PluginType:         BuilderIdRegistry,
@@ -64,6 +70,7 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 	return nil
 }
 
+// PostProcess runs the post processor logic which uploads the artifact to an anka registry
 func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact packer.Artifact) (packer.Artifact, bool, bool, error) {
 	if artifact.BuilderId() != anka.BuilderId {
 		err := fmt.Errorf(
@@ -99,7 +106,6 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 		VMID:        artifact.Id(),
 	}
 
-	// If force is true, revert the template tag (if one exists) on the registry so we can push the VM without issue
 	if p.config.PackerForce {
 		var id string
 

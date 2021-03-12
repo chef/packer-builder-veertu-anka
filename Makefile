@@ -30,7 +30,7 @@ build-and-install: $(BIN)
 	$(MAKE) install
 
 packer-test: install
-	PACKER_LOG=1 packer build examples/create-from-installer.json
+	PACKER_LOG=1 packer build examples/clone-existing.json
 
 clean:
 	rm -f $(BIN)

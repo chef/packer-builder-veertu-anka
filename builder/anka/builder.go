@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/multistep/commonsteps"
 	"github.com/hashicorp/packer-plugin-sdk/packer"
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
+	"github.com/veertuinc/packer-builder-veertu-anka/util"
 )
 
 // BuilderId is the unique ID for this builder.
@@ -36,6 +37,7 @@ func (b *Builder) Prepare(raws ...interface{}) (params []string, warns []string,
 // Run executes an Anka Packer build and returns a packer.Artifact
 func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (packer.Artifact, error) {
 	ankaClient := &client.AnkaClient{}
+	util := &util.AnkaUtil{}
 
 	version, err := ankaClient.Version()
 	if err != nil {
@@ -49,6 +51,7 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 	state.Put("hook", hook)
 	state.Put("ui", ui)
 	state.Put("client", ankaClient)
+	state.Put("util", util)
 
 	steps := []multistep.Step{
 		&StepTempDir{},

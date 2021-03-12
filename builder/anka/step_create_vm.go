@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 
-	"github.com/groob/plist"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	"github.com/hashicorp/packer-plugin-sdk/packer"
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
 	"github.com/veertuinc/packer-builder-veertu-anka/common"
+	"github.com/veertuinc/packer-builder-veertu-anka/util"
 )
 
 const (
@@ -30,15 +28,15 @@ type StepCreateVM struct {
 func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packer.Ui)
-
+	util := state.Get("util").(util.Util)
 	onError := func(err error) multistep.StepAction {
-		return stepError(ui, state, err)
+		return util.StepError(ui, state, err)
 	}
 
 	s.client = state.Get("client").(client.Client)
 	s.vmName = config.VMName
 
-	macOSVersionFromInstallerApp, err := obtainMacOSVersionFromInstallerApp(config.InstallerApp)
+	macOSVersionFromInstallerApp, err := util.ObtainMacOSVersionFromInstallerApp(config.InstallerApp)
 	if err != nil {
 		return onError(err)
 	}
@@ -98,36 +96,6 @@ func (s *StepCreateVM) Cleanup(state multistep.StateBag) {
 			return
 		}
 	}
-}
-
-func obtainMacOSVersionFromInstallerApp(path string) (string, error) {
-	_, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return "", fmt.Errorf("installer app does not exist at %q: %w", path, err)
-	}
-	if err != nil {
-		return "", fmt.Errorf("failed to stat installer at %q: %w", path, err)
-	}
-
-	plistPath := filepath.Join(path, "Contents", "Info.plist")
-	_, err = os.Stat(plistPath)
-	if os.IsNotExist(err) {
-		return "", fmt.Errorf("installer app info plist did not exist at %q: %w", plistPath, err)
-	}
-	if err != nil {
-		return "", fmt.Errorf("failed to stat installer app info plist at %q: %w", plistPath, err)
-	}
-	plistContent, _ := os.Open(plistPath)
-
-	var installAppPlist struct {
-		PlatformVersion string `plist:"DTPlatformVersion"`
-		ShortVersion    string `plist:"CFBundleShortVersionString"`
-	}
-	if err = plist.NewXMLDecoder(plistContent).Decode(&installAppPlist); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%s-%s", installAppPlist.PlatformVersion, installAppPlist.ShortVersion), nil
 }
 
 func (s *StepCreateVM) createFromInstallerApp(ui packer.Ui, config *Config) error {

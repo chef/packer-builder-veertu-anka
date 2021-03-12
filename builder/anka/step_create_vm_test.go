@@ -15,8 +15,9 @@ import (
 	"gotest.tools/assert"
 )
 
+var createResponse c.CreateResponse
+
 func TestCreateVMRun(t *testing.T) {
-	var createResponse c.CreateResponse
 	err := json.Unmarshal(json.RawMessage(`{"UUID": "abcd-efgh-1234-5678"}`), &createResponse)
 	if err != nil {
 		t.Fail()
@@ -25,6 +26,7 @@ func TestCreateVMRun(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	client := mocks.NewMockClient(mockCtrl)
+	util := mocks.NewMockUtil(mockCtrl)
 
 	step := StepCreateVM{}
 	ui := packer.TestUi(t)
@@ -32,13 +34,14 @@ func TestCreateVMRun(t *testing.T) {
 	state := new(multistep.BasicStateBag)
 
 	state.Put("ui", ui)
+	state.Put("util", util)
 
 	t.Run("create vm", func(t *testing.T) {
 		config := &Config{
 			DiskSize:     "500G",
 			CPUCount:     "32G",
 			RAMSize:      "16G",
-			InstallerApp: "/Applications/Install macOS Big Sur.app/",
+			InstallerApp: "/fake/InstallApp.app/",
 			VMName:       "foo",
 			PackerConfig: common.PackerConfig{
 				PackerBuilderType: "veertu-anka-vm-create",
@@ -60,7 +63,10 @@ func TestCreateVMRun(t *testing.T) {
 			RAMSize:      config.RAMSize,
 		}
 
-		client.EXPECT().Create(createParams, gomock.Any()).Return(createResponse, nil).Times(1)
+		gomock.InOrder(
+			util.EXPECT().ObtainMacOSVersionFromInstallerApp(config.InstallerApp).Return("11.2-16.4.06", nil).Times(1),
+			client.EXPECT().Create(createParams, gomock.Any()).Return(createResponse, nil).Times(1),
+		)
 
 		mockui := packer.MockUi{}
 		mockui.Say(fmt.Sprintf("Creating a new VM Template (%s) from installer, this will take a while", step.vmName))
@@ -77,7 +83,7 @@ func TestCreateVMRun(t *testing.T) {
 			DiskSize:     "500G",
 			CPUCount:     "32G",
 			RAMSize:      "16G",
-			InstallerApp: "/Applications/Install macOS Big Sur.app/",
+			InstallerApp: "/fake/InstallApp.app/",
 			VMName:       "foo",
 			PackerConfig: common.PackerConfig{
 				PackerForce:       true,
@@ -101,6 +107,7 @@ func TestCreateVMRun(t *testing.T) {
 		}
 
 		gomock.InOrder(
+			util.EXPECT().ObtainMacOSVersionFromInstallerApp(config.InstallerApp).Return("11.2-16.4.06", nil).Times(1),
 			client.EXPECT().Exists(step.vmName).Return(true, nil).Times(1),
 			client.EXPECT().Delete(c.DeleteParams{VMName: step.vmName}).Return(nil).Times(1),
 			client.EXPECT().Create(createParams, gomock.Any()).Return(createResponse, nil).Times(1),
@@ -116,5 +123,35 @@ func TestCreateVMRun(t *testing.T) {
 		assert.Equal(t, mockui.SayMessages[1].Message, "Creating a new VM Template (foo-11.2-16.4.06) from installer, this will take a while")
 		assert.Equal(t, mockui.SayMessages[2].Message, "VM foo-11.2-16.4.06 was created (abcd-efgh-1234-5678)")
 		assert.Equal(t, multistep.ActionContinue, stepAction)
+	})
+
+	t.Run("create vm and installer app does not exist", func(t *testing.T) {
+		config := &Config{
+			DiskSize:     "500G",
+			CPUCount:     "32G",
+			RAMSize:      "16G",
+			InstallerApp: "/does/not/exist/InstallApp.app/",
+			VMName:       "foo",
+			PackerConfig: common.PackerConfig{
+				PackerBuilderType: "veertu-anka-vm-create",
+			},
+		}
+
+		state.Put("config", config)
+		state.Put("client", client)
+
+		gomock.InOrder(
+			util.EXPECT().
+				ObtainMacOSVersionFromInstallerApp(config.InstallerApp).
+				Return("", fmt.Errorf("installer app does not exist at %q", config.InstallerApp)).
+				Times(1),
+			util.EXPECT().
+				StepError(ui, state, fmt.Errorf("installer app does not exist at %q", config.InstallerApp)).
+				Return(multistep.ActionHalt).
+				Times(1),
+		)
+
+		stepAction := step.Run(ctx, state)
+		assert.Equal(t, multistep.ActionHalt, stepAction)
 	})
 }

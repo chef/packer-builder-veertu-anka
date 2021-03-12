@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/packer-plugin-sdk/packer"
 	"github.com/veertuinc/packer-builder-veertu-anka/client"
 	"github.com/veertuinc/packer-builder-veertu-anka/common"
+	"github.com/veertuinc/packer-builder-veertu-anka/util"
 )
 
 // StepCloneVM will be used to run the clone step for any 'vm-clone' builder types
@@ -22,14 +23,14 @@ type StepCloneVM struct {
 func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packer.Ui)
+	util := state.Get("util").(util.Util)
+	onError := func(err error) multistep.StepAction {
+		return util.StepError(ui, state, err)
+	}
 	sourceVMTag := "latest"
 
 	if config.SourceVMTag != "" {
 		sourceVMTag = config.SourceVMTag
-	}
-
-	onError := func(err error) multistep.StepAction {
-		return stepError(ui, state, err)
 	}
 
 	registryParams := client.RegistryParams{
@@ -110,7 +111,7 @@ func (s *StepCloneVM) Run(ctx context.Context, state multistep.StateBag) multist
 		return onError(err)
 	}
 
-	err = s.modifyVMResources(clonedShow, config, ui)
+	err = s.modifyVMResources(clonedShow, config, ui, util)
 	if err != nil {
 		return onError(err)
 	}
@@ -163,14 +164,14 @@ func (s *StepCloneVM) Cleanup(state multistep.StateBag) {
 	}
 }
 
-func (s *StepCloneVM) modifyVMResources(showResponse client.ShowResponse, config *Config, ui packer.Ui) error {
+func (s *StepCloneVM) modifyVMResources(showResponse client.ShowResponse, config *Config, ui packer.Ui, util util.Util) error {
 	stopParams := client.StopParams{
 		VMName: showResponse.Name,
 		Force:  true,
 	}
 
 	if config.DiskSize != "" {
-		err, diskSizeBytes := convertDiskSizeToBytes(config.DiskSize)
+		diskSizeBytes, err := util.ConvertDiskSizeToBytes(config.DiskSize)
 		if err != nil {
 			return err
 		}
