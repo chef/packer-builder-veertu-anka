@@ -233,15 +233,6 @@ func (c *AnkaClient) Run(params RunParams) (int, error) {
 	return runner.Wait()
 }
 
-func (c *AnkaClient) RunWithOutput(params RunParams) ([]byte, error) {
-	out, err := exec.Command("anka", params.Command...).Output()
-	if err != nil {
-		return nil, err
-	}
-
-	return out, err
-}
-
 type ShowResponse struct {
 	UUID      string `json:"uuid"`
 	Name      string `json:"name"`

@@ -23,7 +23,6 @@ type Client interface {
 	RegistryPush(registryParams RegistryParams, pushParams RegistryPushParams) error
 	RegistryRevert(url string, id string) error
 	Run(params RunParams) (int, error)
-	RunWithOutput(params RunParams) ([]byte, error)
 	Show(vmName string) (ShowResponse, error)
 	Start(params StartParams) error
 	Stop(params StopParams) error

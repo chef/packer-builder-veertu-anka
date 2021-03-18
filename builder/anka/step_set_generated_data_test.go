@@ -1,6 +1,7 @@
 package anka
 
 import (
+	"bytes"
 	"context"
 	"testing"
 
@@ -11,6 +12,10 @@ import (
 	c "github.com/veertuinc/packer-builder-veertu-anka/client"
 	mocks "github.com/veertuinc/packer-builder-veertu-anka/mocks"
 	"gotest.tools/assert"
+)
+
+var (
+	osv, darwinVersion c.RunParams
 )
 
 func TestSetGeneratedDataRun(t *testing.T) {
@@ -35,21 +40,24 @@ func TestSetGeneratedDataRun(t *testing.T) {
 		state.Put("vm_name", step.vmName)
 		state.Put("client", client)
 
+		darwinVersion := c.RunParams{
+			Command: []string{"/usr/bin/uname", "-r"},
+			VMName:  step.vmName,
+			Stdout:  &bytes.Buffer{},
+		}
+
+		osv := c.RunParams{
+			Command: []string{"/usr/bin/sw_vers", "-productVersion"},
+			VMName:  step.vmName,
+			Stdout:  &bytes.Buffer{},
+		}
+
 		gomock.InOrder(
-			client.EXPECT().RunWithOutput(
-				c.RunParams{
-					Command: []string{"run", step.vmName, "uname", "-r"},
-				},
-			).Times(1),
-			client.EXPECT().RunWithOutput(
-				c.RunParams{
-					Command: []string{"run", step.vmName, "sw_vers", "-productVersion"},
-				},
-			).Times(1),
+			client.EXPECT().Run(darwinVersion).Times(1),
+			client.EXPECT().Run(osv).Times(1),
 		)
 
 		stepAction := step.Run(ctx, state)
-
 		assert.Equal(t, multistep.ActionContinue, stepAction)
 	})
 
@@ -60,14 +68,15 @@ func TestSetGeneratedDataRun(t *testing.T) {
 		state.Put("client", client)
 		state.Put("os_version", "11.2")
 
-		client.EXPECT().RunWithOutput(
-			c.RunParams{
-				Command: []string{"run", step.vmName, "uname", "-r"},
-			},
-		).Times(1)
+		darwinVersion := c.RunParams{
+			Command: []string{"/usr/bin/uname", "-r"},
+			VMName:  step.vmName,
+			Stdout:  &bytes.Buffer{},
+		}
+
+		client.EXPECT().Run(darwinVersion).Times(1)
 
 		stepAction := step.Run(ctx, state)
-
 		assert.Equal(t, multistep.ActionContinue, stepAction)
 	})
 }

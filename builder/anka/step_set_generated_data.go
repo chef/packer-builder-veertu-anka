@@ -1,6 +1,7 @@
 package anka
 
 import (
+	"bytes"
 	"context"
 	"log"
 
@@ -18,31 +19,38 @@ type StepSetGeneratedData struct {
 func (s *StepSetGeneratedData) Run(_ context.Context, state multistep.StateBag) multistep.StepAction {
 	log.Printf("Exposing build contextual variables...")
 
-	osVersion := state.Get("os_version")
 	s.client = state.Get("client").(client.Client)
 	s.vmName = state.Get("vm_name").(string)
+	osVersion := state.Get("os_version")
+	darwinVersion := client.RunParams{
+		Command: []string{"/usr/bin/uname", "-r"},
+		VMName:  s.vmName,
+		Stdout:  &bytes.Buffer{},
+	}
 
-	darwinVersion, err := s.client.RunWithOutput(client.RunParams{
-		Command: []string{"run", s.vmName, "uname", "-r"},
-	})
+	_, err := s.client.Run(darwinVersion)
 	if err != nil {
 		return multistep.ActionHalt
 	}
 
 	if osVersion == nil {
-		osv, err := s.client.RunWithOutput(client.RunParams{
-			Command: []string{"run", s.vmName, "sw_vers", "-productVersion"},
-		})
+		osv := client.RunParams{
+			Command: []string{"/usr/bin/sw_vers", "-productVersion"},
+			VMName:  s.vmName,
+			Stdout:  &bytes.Buffer{},
+		}
+
+		_, err := s.client.Run(osv)
 		if err != nil {
 			return multistep.ActionHalt
 		}
 
-		osVersion = string(osv)
+		osVersion = osv.Stdout
 	}
 
 	s.GeneratedData.Put("VMName", s.vmName)
 	s.GeneratedData.Put("OSVersion", osVersion)
-	s.GeneratedData.Put("DarwinVersion", string(darwinVersion))
+	s.GeneratedData.Put("DarwinVersion", darwinVersion.Stdout)
 
 	return multistep.ActionContinue
 }

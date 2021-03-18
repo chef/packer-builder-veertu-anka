@@ -212,21 +212,6 @@ func (mr *MockClientMockRecorder) Run(params interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockClient)(nil).Run), params)
 }
 
-// RunWithOutput mocks base method.
-func (m *MockClient) RunWithOutput(params client.RunParams) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunWithOutput", params)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RunWithOutput indicates an expected call of RunWithOutput.
-func (mr *MockClientMockRecorder) RunWithOutput(params interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunWithOutput", reflect.TypeOf((*MockClient)(nil).RunWithOutput), params)
-}
-
 // Show mocks base method.
 func (m *MockClient) Show(vmName string) (client.ShowResponse, error) {
 	m.ctrl.T.Helper()
