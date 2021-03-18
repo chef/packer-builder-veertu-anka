@@ -36,14 +36,15 @@ func (s *StepCreateVM) Run(ctx context.Context, state multistep.StateBag) multis
 	s.client = state.Get("client").(client.Client)
 	s.vmName = config.VMName
 
-	macOSVersionFromInstallerApp, err := util.ObtainMacOSVersionFromInstallerApp(config.InstallerApp)
+	installerAppData, err := util.ObtainMacOSVersionFromInstallerApp(config.InstallerApp)
 	if err != nil {
 		return onError(err)
 	}
 
-	s.vmName = fmt.Sprintf("%s-%s", s.vmName, macOSVersionFromInstallerApp)
+	s.vmName = fmt.Sprintf("%s-%s-%s", s.vmName, installerAppData.OSVersion, installerAppData.OSPlatformVersion)
 
 	state.Put("vm_name", s.vmName)
+	state.Put("os_version", installerAppData.OSVersion)
 
 	if config.PackerForce {
 		exists, err := s.client.Exists(s.vmName)
