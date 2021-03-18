@@ -14,10 +14,6 @@ import (
 	"gotest.tools/assert"
 )
 
-var (
-	osv, darwinVersion c.RunParams
-)
-
 func TestSetGeneratedDataRun(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -26,31 +22,28 @@ func TestSetGeneratedDataRun(t *testing.T) {
 
 	state := new(multistep.BasicStateBag)
 	step := StepSetGeneratedData{
+		vmName:        "foo-11.2-16.4.06",
 		GeneratedData: &packerbuilderdata.GeneratedData{State: state},
 	}
 	ui := packer.TestUi(t)
 	ctx := context.Background()
+	darwinVersion := c.RunParams{
+		Command: []string{"/usr/bin/uname", "-r"},
+		VMName:  step.vmName,
+		Stdout:  &bytes.Buffer{},
+	}
+	osv := c.RunParams{
+		Command: []string{"/usr/bin/sw_vers", "-productVersion"},
+		VMName:  step.vmName,
+		Stdout:  &bytes.Buffer{},
+	}
 
 	state.Put("ui", ui)
 	state.Put("util", util)
 
 	t.Run("expose variables", func(t *testing.T) {
-		step.vmName = "foo-11.2-16.4.06"
-
 		state.Put("vm_name", step.vmName)
 		state.Put("client", client)
-
-		darwinVersion := c.RunParams{
-			Command: []string{"/usr/bin/uname", "-r"},
-			VMName:  step.vmName,
-			Stdout:  &bytes.Buffer{},
-		}
-
-		osv := c.RunParams{
-			Command: []string{"/usr/bin/sw_vers", "-productVersion"},
-			VMName:  step.vmName,
-			Stdout:  &bytes.Buffer{},
-		}
 
 		gomock.InOrder(
 			client.EXPECT().Run(darwinVersion).Times(1),
@@ -62,17 +55,9 @@ func TestSetGeneratedDataRun(t *testing.T) {
 	})
 
 	t.Run("expose variables when create vm was used", func(t *testing.T) {
-		step.vmName = "foo-11.2-16.4.06"
-
 		state.Put("vm_name", step.vmName)
 		state.Put("client", client)
 		state.Put("os_version", "11.2")
-
-		darwinVersion := c.RunParams{
-			Command: []string{"/usr/bin/uname", "-r"},
-			VMName:  step.vmName,
-			Stdout:  &bytes.Buffer{},
-		}
 
 		client.EXPECT().Run(darwinVersion).Times(1)
 
