@@ -27,7 +27,7 @@ type Builder struct {
 
 // Prepare processes the build configuration parameters.
 func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
-	generatedData := []string{"VMName", "OSVersion", "OSPlatformVersion", "DarwinVersion"}
+	generatedData := []string{"VMName", "OSVersion", "DarwinVersion"}
 
 	c, errs := NewConfig(raws...)
 	if errs != nil {
