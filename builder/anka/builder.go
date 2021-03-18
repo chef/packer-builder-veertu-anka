@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
@@ -42,12 +41,6 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (packer.Artifact, error) {
 	ankaClient := &client.AnkaClient{}
 	util := &util.AnkaUtil{}
-
-	version, err := ankaClient.Version()
-	if err != nil {
-		return nil, err
-	}
-	log.Printf("[DEBUG] Anka version: %s version %s (build %s)", version.Body.Product, version.Body.Version, version.Body.Build)
 
 	// Setup the state bag and initial state for the steps
 	state := new(multistep.BasicStateBag)

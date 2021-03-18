@@ -8,7 +8,7 @@ Note that this builder does not manage images. Once it creates an image, it is u
 
 * Plugin will only work with Packer v1.7 or later.
 * Plugin has been renamed from `packer-builder-veertu-anka` to `packer-plugin-veertu-anka`.
-* Builder has been renamed from `veertu-anka` to `veertu-anka-vm-clone` and `veertu-anka-cm-create.
+* Builder has been renamed from `veertu-anka` to `veertu-anka-vm-clone` and `veertu-anka-vm-create`.
 
 ### Compatibility
 
@@ -115,7 +115,7 @@ Sets the username for the vm. Can also be set with `ANKA_DEFAULT_USER` env var. 
 
 The time to wait before running packer provisioner commands, defaults to `10s`.
 
-* `vcpu_count` (String)
+* `cpu_count` (String)
 
 The number of CPU cores, defaults to `2`.
 
@@ -193,7 +193,7 @@ Path to a CA Root certificate.
 
 Path to your node certificate (if certificate authority is enabled).
 
-* `vcpu_count` (String)
+* `cpu_count` (String)
 
 The number of CPU cores, defaults to `2`.
 
