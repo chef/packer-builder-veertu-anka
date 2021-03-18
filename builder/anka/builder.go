@@ -112,6 +112,15 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 		return nil, err
 	}
 
+	license, err := ankaClient.License()
+	if err != nil {
+		return nil, err
+	}
+
+	if license.LicenseType != "com.veertu.anka.develop" {
+		b.config.StopVM = true
+	}
+
 	if b.config.StopVM {
 		ui.Say(fmt.Sprintf("Stopping VM %s", descr.Name))
 

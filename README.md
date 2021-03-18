@@ -8,14 +8,12 @@ Note that this builder does not manage images. Once it creates an image, it is u
 
 * Plugin will only work with Packer v1.7 or later.
 * Plugin has been renamed from `packer-builder-veertu-anka` to `packer-plugin-veertu-anka`.
-* Builder has been renamed from `veertu-anka` to `veertu-anka-vm`.
+* Builder has been renamed from `veertu-anka` to `veertu-anka-vm-clone` and `veertu-anka-cm-create.
 
 ### Compatibility
 
 Packer Version | Veertu Anka Plugin Version
 --- | ---
-Up to 1.4.5 | 1.1.0
-1.5.x and above | 1.2.0
 1.7.x and above | 2.0.0
 
 ## Installing from Binary
@@ -117,7 +115,7 @@ Sets the username for the vm. Can also be set with `ANKA_DEFAULT_USER` env var. 
 
 The time to wait before running packer provisioner commands, defaults to `10s`.
 
-* `cpu_count` (String)
+* `vcpu_count` (String)
 
 The number of CPU cores, defaults to `2`.
 
@@ -195,7 +193,7 @@ Path to a CA Root certificate.
 
 Path to your node certificate (if certificate authority is enabled).
 
-* `cpu_count` (String)
+* `vcpu_count` (String)
 
 The number of CPU cores, defaults to `2`.
 
@@ -356,6 +354,21 @@ The variables we expose are:
 ## Development
 
 You will need a recent golang installed and setup. See `go.mod` for which version is expected.
+
+To recreate any of the `*.hcl2spec.go` files, navigate to the desired folder and recreate them with `go:generate`
+
+```bash
+cd builder/anka
+go generate config.go
+```
+
+We use [gomock](https://github.com/golang/mock) to quickly and reliably mock our interfaces for testing. This allows us to easily test when we expect logic to be called without having to rewrite golang standard library functions with custom mock logic. To generate one of these mocked interfaces, installed the mockgen binary by following the link provided.
+
+```bash
+mockgen -source=client/client.go -destination=mocks/client_mock.go -package=mocks
+```
+
+### Testing
 
 To test a basic vm creation, run:
 
