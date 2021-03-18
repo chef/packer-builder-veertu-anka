@@ -355,13 +355,6 @@ The variables we expose are:
 
 You will need a recent golang installed and setup. See `go.mod` for which version is expected.
 
-To recreate any of the `*.hcl2spec.go` files, navigate to the desired folder and recreate them with `go:generate`
-
-```bash
-cd builder/anka
-go generate config.go
-```
-
 We use [gomock](https://github.com/golang/mock) to quickly and reliably mock our interfaces for testing. This allows us to easily test when we expect logic to be called without having to rewrite golang standard library functions with custom mock logic. To generate one of these mocked interfaces, installed the mockgen binary by following the link provided.
 
 ```bash
