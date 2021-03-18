@@ -315,6 +315,17 @@ The name of a registry template you want to push the local template onto.
 
 The name of the tag to push (will default as 'latest' if not set).
 
+## Build Variables
+
+Packer allows for the exposure of build variables which connects information related to the artifact that was built. Those variables can then be accessed by `post-processors` and `provisioners`.
+
+The variables we expose are:
+
+* `VMName`: name of the artifact vm
+* `OSVersion`: OS version from which the artifact was created
+* `DarwinVersion`: Darwin version that is compatible with the current OS version
+
+
 ## Development
 
 You will need a recent golang installed and setup. See `go.mod` for which version is expected.
