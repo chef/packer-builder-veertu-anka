@@ -21,9 +21,13 @@ func (s *StepSetGeneratedData) Run(_ context.Context, state multistep.StateBag) 
 
 	s.client = state.Get("client").(client.Client)
 	s.vmName = state.Get("vm_name").(string)
-	osVersion := state.Get("os_version")
 	darwinVersion := client.RunParams{
 		Command: []string{"/usr/bin/uname", "-r"},
+		VMName:  s.vmName,
+		Stdout:  &bytes.Buffer{},
+	}
+	osVersion := client.RunParams{
+		Command: []string{"/usr/bin/sw_vers", "-productVersion"},
 		VMName:  s.vmName,
 		Stdout:  &bytes.Buffer{},
 	}
@@ -33,23 +37,13 @@ func (s *StepSetGeneratedData) Run(_ context.Context, state multistep.StateBag) 
 		return multistep.ActionHalt
 	}
 
-	if osVersion == nil {
-		osv := client.RunParams{
-			Command: []string{"/usr/bin/sw_vers", "-productVersion"},
-			VMName:  s.vmName,
-			Stdout:  &bytes.Buffer{},
-		}
-
-		_, err := s.client.Run(osv)
-		if err != nil {
-			return multistep.ActionHalt
-		}
-
-		osVersion = osv.Stdout
+	_, osErr := s.client.Run(osVersion)
+	if osErr != nil {
+		return multistep.ActionHalt
 	}
 
 	s.GeneratedData.Put("VMName", s.vmName)
-	s.GeneratedData.Put("OSVersion", osVersion)
+	s.GeneratedData.Put("OSVersion", osVersion.Stdout)
 	s.GeneratedData.Put("DarwinVersion", darwinVersion.Stdout)
 
 	return multistep.ActionContinue

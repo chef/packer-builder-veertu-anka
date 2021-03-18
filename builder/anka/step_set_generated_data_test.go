@@ -53,15 +53,4 @@ func TestSetGeneratedDataRun(t *testing.T) {
 		stepAction := step.Run(ctx, state)
 		assert.Equal(t, multistep.ActionContinue, stepAction)
 	})
-
-	t.Run("expose variables when create vm was used", func(t *testing.T) {
-		state.Put("vm_name", step.vmName)
-		state.Put("client", client)
-		state.Put("os_version", "11.2")
-
-		client.EXPECT().Run(darwinVersion).Times(1)
-
-		stepAction := step.Run(ctx, state)
-		assert.Equal(t, multistep.ActionContinue, stepAction)
-	})
 }

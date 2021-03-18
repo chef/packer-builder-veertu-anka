@@ -322,9 +322,36 @@ Packer allows for the exposure of build variables which connects information rel
 The variables we expose are:
 
 * `VMName`: name of the artifact vm
-* `OSVersion`: OS version from which the artifact was created
+* `OSVersion`: OS version from which the artifact was created 
+  * eg. 10.15.7
 * `DarwinVersion`: Darwin version that is compatible with the current OS version
+  * eg. 19.6.0
 
+```json
+{
+  "variables": {
+    "source_vm_name": "anka-packer-base-11.2-16.4.06"
+  },
+  "builders": [{
+    "type": "",
+    "source_vm_name": "{{ user `source_vm_name` }}",
+    "vm_name": "anka-macos-from-{{ user `source_vm_name` }}"
+  }],
+  "provisioners": [
+    {
+      "type": "shell",
+      "environment_vars": [
+        "VMNAME={{ build `VMName`}}",
+        "OSVERSION={{ build `OSVersion` }}",
+        "DARWINVERSION={{ build `DarwinVersion` }}"
+      ],
+      "inline": [
+        "echo $VMNAME was cloned with Mac $OSVERSION and compatible Darwin Version $DARWINVERSION"
+      ]
+    }
+  ]
+}
+```
 
 ## Development
 
