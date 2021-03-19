@@ -111,6 +111,7 @@ func (b *Builder) Run(ctx context.Context, ui packer.Ui, hook packer.Hook) (pack
 		return nil, err
 	}
 
+	// https://ankadocs.veertu.com/docs/licensing/#anka-license-feature-differences
 	if license.LicenseType == "com.veertu.anka.develop" {
 		log.Printf("developer license present, can only stop vms")
 		b.config.StopVM = true
