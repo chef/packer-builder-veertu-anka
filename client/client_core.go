@@ -53,17 +53,17 @@ type CreateParams struct {
 	OpticalDrive string
 	RAMSize      string
 	DiskSize     string
-	CPUCount     string
+	VCPUCount    string
 }
 
 // https://ankadocs.veertu.com/docs/anka-virtualization/command-reference/#create
 type CreateResponse struct {
-	UUID     string `json:"uuid"`
-	Name     string `json:"name"`
-	CPUCores int    `json:"cpu_cores"`
-	RAM      string `json:"ram"`
-	ImageID  string `json:"image_id"`
-	Status   string `json:"status"`
+	UUID      string `json:"uuid"`
+	Name      string `json:"name"`
+	VCPUCores int    `json:"cpu_cores"`
+	RAM       string `json:"ram"`
+	ImageID   string `json:"image_id"`
+	Status    string `json:"status"`
 }
 
 func (c *AnkaClient) Create(params CreateParams, outputStreamer chan string) (CreateResponse, error) {
@@ -73,7 +73,7 @@ func (c *AnkaClient) Create(params CreateParams, outputStreamer chan string) (Cr
 		"create",
 		"--app", params.InstallerApp,
 		"--ram-size", params.RAMSize,
-		"--cpu-count", params.CPUCount,
+		"--cpu-count", params.VCPUCount,
 		"--disk-size", params.DiskSize,
 		params.Name,
 	}
@@ -113,7 +113,7 @@ type DescribeResponse struct {
 	Name    string `json:"name"`
 	Version int    `json:"version"`
 	UUID    string `json:"uuid"`
-	CPU     struct {
+	VCPU    struct {
 		Cores   int `json:"cores"`
 		Threads int `json:"threads"`
 	} `json:"cpu"`
@@ -267,7 +267,7 @@ func (c *AnkaClient) Run(params RunParams) (int, error) {
 type ShowResponse struct {
 	UUID      string `json:"uuid"`
 	Name      string `json:"name"`
-	CPUCores  int    `json:"cpu_cores"`
+	VCPUCores int    `json:"cpu_cores"`
 	RAM       string `json:"ram"`
 	ImageID   string `json:"image_id"`
 	Status    string `json:"status"`
