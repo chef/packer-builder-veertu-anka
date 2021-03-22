@@ -18,6 +18,13 @@ import (
 
 const defaultBootDelay = "10s"
 
+// PortForwardingRule defines the requirements for port forwarding
+type PortForwardingRule struct {
+	PortForwardingGuestPort int    `mapstructure:"port_forwarding_guest_port"`
+	PortForwardingHostPort  int    `mapstructure:"port_forwarding_host_port"`
+	PortForwardingRuleName  string `mapstructure:"port_forwarding_rule_name"`
+}
+
 // Config initializes the builders using mapstructure which decodes
 // generic map values from either the json or hcl2 config files provided
 type Config struct {
@@ -47,11 +54,7 @@ type Config struct {
 	CaRootPath   string `mapstructure:"cacert"`
 	IsInsecure   bool   `mapstructure:"insecure"`
 
-	PortForwardingRules []struct {
-		PortForwardingGuestPort int    `mapstructure:"port_forwarding_guest_port"`
-		PortForwardingHostPort  int    `mapstructure:"port_forwarding_host_port"`
-		PortForwardingRuleName  string `mapstructure:"port_forwarding_rule_name"`
-	} `mapstructure:"port_forwarding_rules,omitempty"`
+	PortForwardingRules []PortForwardingRule `mapstructure:"port_forwarding_rules,omitempty"`
 
 	HWUUID     string `mapstructure:"hw_uuid,omitempty"`
 	BootDelay  string `mapstructure:"boot_delay"`
