@@ -1,4 +1,4 @@
-//go:generate mapstructure-to-hcl2 -type Config
+//go:generate mapstructure-to-hcl2 -type Config,PortForwardingRule
 
 package anka
 
@@ -54,7 +54,12 @@ type Config struct {
 	CaRootPath   string `mapstructure:"cacert"`
 	IsInsecure   bool   `mapstructure:"insecure"`
 
-	PortForwardingRules []PortForwardingRule `mapstructure:"port_forwarding_rules,omitempty"`
+	PortForwardingRules []PortForwardingRule `mapstructure:"port_forwarding_rules,omitempty" required:"false"`
+	// []struct {
+	// 	PortForwardingGuestPort int    `mapstructure:"port_forwarding_guest_port"`
+	// 	PortForwardingHostPort  int    `mapstructure:"port_forwarding_host_port"`
+	// 	PortForwardingRuleName  string `mapstructure:"port_forwarding_rule_name"`
+	// } `mapstructure:"port_forwarding_rules,omitempty" required:"false"`
 
 	HWUUID     string `mapstructure:"hw_uuid,omitempty"`
 	BootDelay  string `mapstructure:"boot_delay"`
