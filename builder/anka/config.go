@@ -54,7 +54,7 @@ type Config struct {
 	CaRootPath   string `mapstructure:"cacert"`
 	IsInsecure   bool   `mapstructure:"insecure"`
 
-	PortForwardingRules []PortForwardingRule `mapstructure:"port_forwarding_rules,omitempty" required:"false"`
+	PortForwardingRules []PortForwardingRule `mapstructure:"port_forwarding_rules,omitempty"`
 
 	HWUUID     string `mapstructure:"hw_uuid,omitempty"`
 	BootDelay  string `mapstructure:"boot_delay"`

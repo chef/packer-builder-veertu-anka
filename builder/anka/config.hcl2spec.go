@@ -84,7 +84,7 @@ type FlatConfig struct {
 	NodeKeyPath               *string                  `mapstructure:"key" cty:"key" hcl:"key"`
 	CaRootPath                *string                  `mapstructure:"cacert" cty:"cacert" hcl:"cacert"`
 	IsInsecure                *bool                    `mapstructure:"insecure" cty:"insecure" hcl:"insecure"`
-	PortForwardingRules       []FlatPortForwardingRule `mapstructure:"port_forwarding_rules,omitempty" required:"false" cty:"port_forwarding_rules" hcl:"port_forwarding_rules"`
+	PortForwardingRules       []FlatPortForwardingRule `mapstructure:"port_forwarding_rules,omitempty" cty:"port_forwarding_rules" hcl:"port_forwarding_rules"`
 	HWUUID                    *string                  `mapstructure:"hw_uuid,omitempty" cty:"hw_uuid" hcl:"hw_uuid"`
 	BootDelay                 *string                  `mapstructure:"boot_delay" cty:"boot_delay" hcl:"boot_delay"`
 	EnableHtt                 *bool                    `mapstructure:"enable_htt" cty:"enable_htt" hcl:"enable_htt"`
