@@ -48,6 +48,54 @@ func (c *AnkaClient) RegistryList(registryParams RegistryParams) ([]RegistryList
 	return response, nil
 }
 
+type RegistryListReposResponse struct {
+	Default bool   `json:"default,omitempty"`
+	ID      string `json:"id,omitempty"`
+	Host    string `json:"host"`
+	Scheme  string `json:"scheme"`
+	Port    string `json:"port"`
+}
+
+func (c *AnkaClient) RegistryDefaultRepo() (RegistryListReposResponse, error) {
+	var response RegistryListReposResponse
+
+	output, err := runRegistryCommand(RegistryParams{}, "list-repos", "--default")
+	if err != nil {
+		return response, err
+	}
+	if output.Status != "OK" {
+		log.Print("Error using 'registry list-repos' to determine default registry: ", output.ExceptionType, " ", output.Message)
+		return response, fmt.Errorf(output.Message)
+	}
+
+	err = json.Unmarshal(output.Body, &response)
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *AnkaClient) RegistryListRepos() (map[string]RegistryListReposResponse, error) {
+	var response map[string]RegistryListReposResponse
+
+	output, err := runRegistryCommand(RegistryParams{}, "list-repos")
+	if err != nil {
+		return response, err
+	}
+	if output.Status != "OK" {
+		log.Print("Error executing 'registry list-repos' command: ", output.ExceptionType, " ", output.Message)
+		return response, fmt.Errorf(output.Message)
+	}
+
+	err = json.Unmarshal(output.Body, &response)
+	if err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
 type RegistryPullParams struct {
 	VMID   string
 	Tag    string

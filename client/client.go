@@ -18,7 +18,9 @@ type Client interface {
 	Exists(vmName string) (bool, error)
 	License() (LicenseResponse, error)
 	Modify(vmName string, command string, property string, flags ...string) error
+	RegistryDefaultRepo() (RegistryListReposResponse, error)
 	RegistryList(registryParams RegistryParams) ([]RegistryListResponse, error)
+	RegistryListRepos() (map[string]RegistryListReposResponse, error)
 	RegistryPull(registryParams RegistryParams, pullParams RegistryPullParams) error
 	RegistryPush(registryParams RegistryParams, pushParams RegistryPushParams) error
 	RegistryRevert(url string, id string) error
