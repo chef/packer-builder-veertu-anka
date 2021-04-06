@@ -67,31 +67,6 @@ func (p *PostProcessor) Configure(raws ...interface{}) error {
 
 	p.client = &client.AnkaClient{}
 
-	if p.config.RegistryURL == "" {
-		var err error
-		var repoConfig client.RegistryListReposResponse
-
-		if p.config.RegistryName == "" {
-			repoConfig, err = p.client.RegistryDefaultRepo()
-			if err != nil {
-				return err
-			}
-		} else {
-			allRepoConfigs, err := p.client.RegistryListRepos()
-			if err != nil {
-				return err
-			}
-
-			var ok bool
-			repoConfig, ok = allRepoConfigs[p.config.RegistryName]
-			if !ok {
-				return fmt.Errorf("Could not find configuration for registry '%s'", p.config.RegistryName)
-			}
-		}
-
-		p.config.RegistryURL = fmt.Sprintf("%s://%s:%s", repoConfig.Scheme, repoConfig.Host, repoConfig.Port)
-	}
-
 	return nil
 }
 
@@ -102,6 +77,24 @@ func (p *PostProcessor) PostProcess(ctx context.Context, ui packer.Ui, artifact 
 			"unknown artifact type: %s\ncan only import from anka artifacts",
 			artifact.BuilderId())
 		return nil, false, false, err
+	}
+
+	if p.config.RegistryURL == "" {
+		reposList, err := p.client.RegistryListRepos()
+		if err != nil {
+			return nil, false, false, err
+		}
+
+		if p.config.RegistryName == "" {
+			p.config.RegistryName = reposList.Default
+		}
+
+		remote, ok := reposList.Remotes[p.config.RegistryName]
+		if !ok {
+			return nil, false, false, fmt.Errorf("Could not find configuration for registry '%s'", p.config.RegistryName)
+		}
+
+		p.config.RegistryURL = fmt.Sprintf("%s://%s:%s", remote.Scheme, remote.Host, remote.Port)
 	}
 
 	registryParams := client.RegistryParams{
